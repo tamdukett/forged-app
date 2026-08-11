@@ -565,6 +565,18 @@ function setSuRole(role){
   gi('suCodeLbl').textContent=role==='coach'?'Coach setup code':'Coach invite code (optional)';
   gi('suCode').placeholder=role==='coach'?'Given to you by the app owner':'e.g. 7F2K9Q';
 }
+/* if the page was opened via a coach's invite link (?invite=CODE), jump
+   straight to Sign Up as a client with the code pre-filled */
+function applyInviteFromURL(){
+  try{
+    const code=new URLSearchParams(location.search).get('invite');
+    if(!code)return;
+    showAuthTab('signup');
+    setSuRole('client');
+    gi('suCode').value=code;
+    gi('suName').focus();
+  }catch{}
+}
 
 /* ─── LOGIN ─── */
 async function doLogin(){
@@ -971,11 +983,31 @@ function settingsPanel(){
       <button onclick="saveAKSettings()" class="btn-p">Save Key</button>
     </div>
     ${isT?`<div class="card">
-      <div class="ct">🔗 Your Coach Invite Code</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Share this with clients — they enter it when signing up to link their account to yours automatically.</p>
-      <div class="invite-chip">${PROFILE?.invite_code||'—'}</div>
+      <div class="ct">🔗 Invite a Client</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Send a client this link. It opens the app straight on the Sign Up screen with your code already filled in — they just add their name, email, and password.</p>
+      <div class="invite-chip" style="margin-bottom:10px">${PROFILE?.invite_code||'—'}</div>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="inviteLinkInp" readonly value="${inviteLink()}" onclick="this.select()">
+        <button class="btn-p" style="width:auto;padding:11px 16px;white-space:nowrap;margin-top:0" onclick="copyInviteLink()">Copy Link</button>
+      </div>
     </div>`:''}
   </div>`;
+}
+function inviteLink(){
+  if(!PROFILE?.invite_code)return '';
+  const base=location.origin+location.pathname;
+  return `${base}?invite=${encodeURIComponent(PROFILE.invite_code)}`;
+}
+async function copyInviteLink(){
+  const link=inviteLink();
+  if(!link){toast('No invite code yet — reload the app once and try again.');return}
+  try{
+    await navigator.clipboard.writeText(link);
+    toast('Invite link copied ✓ — text or email it to your client');
+  }catch{
+    const inp=gi('inviteLinkInp');if(inp){inp.select();document.execCommand('copy');toast('Invite link copied ✓')}
+    else toast('Could not copy — select the link text manually');
+  }
 }
 async function saveProfileSettings(){
   const name=gi('stName').value.trim();
@@ -1707,6 +1739,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
     sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
+    applyInviteFromURL();
     gi('authScreen').classList.add('active');return;
   }
   const cfg=readCfg();
@@ -1714,6 +1747,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
     sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
+    applyInviteFromURL();
     gi('authScreen').classList.add('active');return;
   }
   gi('setupScreen').classList.add('active');
