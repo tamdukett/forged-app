@@ -44,6 +44,8 @@ button,input,select,textarea{font-family:inherit}
 .pw-rules{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
 .pw-rule{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--muted);transition:color .15s}
 .pw-rule.ok{color:var(--green)}
+.pw-eye{position:absolute;right:2px;top:0;bottom:0;background:none;border:none;cursor:pointer;font-size:15px;padding:0 12px;color:var(--muted);opacity:.7;transition:opacity .15s}
+.pw-eye:hover{opacity:1}
 .authtabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:22px}
 .authtab{flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
 .authtab.active{background:var(--amber);color:#0A0A0C}
@@ -290,7 +292,9 @@ button,input,select,textarea{font-family:inherit}
     <div class="auth-heading">Welcome back</div>
     <p class="auth-note">Sign in with your email and password.</p>
     <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <div class="field"><label>Password</label><input class="fi" id="loginPassword" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field"><label>Password</label>
+      <div style="position:relative"><input class="fi" id="loginPassword" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('loginPassword',this)">👁️</button></div>
+    </div>
     <div class="aerr" id="loginError"></div>
     <button class="btn-p" onclick="doLogin()" id="loginBtn">Sign in →</button>
     <div class="auth-footer">New here? Use the Sign Up tab above.</div>
@@ -305,20 +309,28 @@ button,input,select,textarea{font-family:inherit}
       <button class="authtab active" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
     <div class="auth-heading">Create your account</div>
-    <p class="auth-note">Clients need an invite code from their coach. Coaches need a coach setup code.</p>
-    <div class="field"><label>I am a…</label>
-      <div class="seg">
-        <button class="segb on" id="suRoleClient" onclick="setSuRole('client')">Client</button>
-        <button class="segb" id="suRoleCoach" onclick="setSuRole('coach')">Coach</button>
-      </div>
-    </div>
+    <p class="auth-note" id="suNote">Enter your details to get started as a client.</p>
     <div class="field"><label>Full name</label><input class="fi" id="suName" placeholder="Your name"></div>
     <div class="field"><label>Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com"></div>
-    <div class="field"><label>Password</label><input class="fi" id="suPassword" type="password" placeholder="At least 8 characters"></div>
-    <div class="field" id="suCodeField"><label id="suCodeLbl">Coach invite code</label><input class="fi" id="suCode" placeholder="e.g. 7F2K9Q" style="text-transform:uppercase"></div>
+    <div class="field"><label>Password</label>
+      <div style="position:relative"><input class="fi" id="suPassword" type="password" placeholder="At least 8 characters" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword',this)">👁️</button></div>
+    </div>
+    <div class="field"><label>Confirm password</label>
+      <div style="position:relative"><input class="fi" id="suPassword2" type="password" placeholder="Repeat your password" style="padding-right:42px" onkeydown="if(event.key==='Enter')doSignup()"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword2',this)">👁️</button></div>
+    </div>
+    <div id="suRoleBlock" style="display:none">
+      <div class="field"><label>I am a…</label>
+        <div class="seg">
+          <button class="segb on" id="suRoleClient" onclick="setSuRole('client')">Client</button>
+          <button class="segb" id="suRoleCoach" onclick="setSuRole('coach')">Coach</button>
+        </div>
+      </div>
+    </div>
+    <div class="field" id="suCodeField" style="display:none"><label id="suCodeLbl">Coach setup code</label><input class="fi" id="suCode" placeholder="Given to you by the app owner" style="text-transform:uppercase"></div>
     <div class="aerr" id="suError"></div>
     <div class="aok" id="suOk"></div>
     <button class="btn-p" onclick="doSignup()" id="suBtn">Create account →</button>
+    <div class="auth-footer"><a href="#" id="suCoachToggle" onclick="toggleCoachSignup(event)" style="color:var(--muted);text-decoration:underline;cursor:pointer">Are you a coach?</a></div>
     <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 
@@ -326,14 +338,18 @@ button,input,select,textarea{font-family:inherit}
     <div class="logo">FORGED</div><div class="logo-sub">Training System</div>
     <div class="auth-heading">Create your password</div>
     <p class="auth-note" id="setPwWelcome">Welcome! Choose a secure password to get started.</p>
-    <div class="field"><label>New password</label><input class="fi" id="newPw" type="password" placeholder="Choose a strong password" oninput="checkPwRules()"></div>
+    <div class="field"><label>New password</label>
+      <div style="position:relative"><input class="fi" id="newPw" type="password" placeholder="Choose a strong password" oninput="checkPwRules()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('newPw',this)">👁️</button></div>
+    </div>
     <div class="pw-rules" id="pwRules">
       <div class="pw-rule" id="r-len">○ At least 8 characters</div>
       <div class="pw-rule" id="r-up">○ One uppercase letter</div>
       <div class="pw-rule" id="r-lo">○ One lowercase letter</div>
       <div class="pw-rule" id="r-num">○ One number</div>
     </div>
-    <div class="field"><label>Confirm password</label><input class="fi" id="confPw" type="password" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')doSetPw()"></div>
+    <div class="field"><label>Confirm password</label>
+      <div style="position:relative"><input class="fi" id="confPw" type="password" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')doSetPw()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('confPw',this)">👁️</button></div>
+    </div>
     <div class="aerr" id="setPwErr"></div>
     <button class="btn-p" onclick="doSetPw()" id="setPwBtn" disabled>Set password & continue →</button>
   </div>
@@ -562,11 +578,24 @@ function setSuRole(role){
   suRole=role;
   gi('suRoleClient').classList.toggle('on',role==='client');
   gi('suRoleCoach').classList.toggle('on',role==='coach');
+  gi('suCodeField').style.display=role==='coach'?'flex':'none';
+  gi('suCodeField').style.flexDirection='column';
   gi('suCodeLbl').textContent=role==='coach'?'Coach setup code':'Coach invite code (optional)';
   gi('suCode').placeholder=role==='coach'?'Given to you by the app owner':'e.g. 7F2K9Q';
+  gi('suNote').textContent=role==='coach'?'Enter the coach setup code given to you by the app owner.':'Enter your details to get started as a client.';
 }
-/* if the page was opened via a coach's invite link (?invite=CODE), jump
-   straight to Sign Up as a client with the code pre-filled */
+/* the public form defaults to a plain client signup — no role picker, no
+   code field. Clicking "Are you a coach?" reveals the role toggle + coach
+   setup code field for the rare case someone needs to register as a coach. */
+function toggleCoachSignup(e){
+  if(e)e.preventDefault();
+  const block=gi('suRoleBlock');
+  const showing=block.style.display!=='none';
+  if(showing){block.style.display='none';setSuRole('client')}
+  else{block.style.display='block';setSuRole('coach')}
+}
+/* if the page was opened via a coach's invite link (?invite=CODE), keep the
+   simple client form but silently carry the code through to signup */
 function applyInviteFromURL(){
   try{
     const code=new URLSearchParams(location.search).get('invite');
@@ -574,8 +603,15 @@ function applyInviteFromURL(){
     showAuthTab('signup');
     setSuRole('client');
     gi('suCode').value=code;
+    gi('suNote').textContent="You're signing up as a client — your account will link to your coach automatically.";
     gi('suName').focus();
   }catch{}
+}
+function togglePwVis(id,btn){
+  const inp=gi(id);if(!inp)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.textContent=show?'🙈':'👁️';
 }
 
 /* ─── LOGIN ─── */
@@ -593,17 +629,27 @@ async function doLogin(){
 
 /* ─── SIGN UP ─── */
 async function doSignup(){
-  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim(),pw=gi('suPassword').value;
+  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim(),pw=gi('suPassword').value,pw2=gi('suPassword2').value;
   const code=gi('suCode').value.trim().toUpperCase();
   clrErr('suError');gi('suOk').classList.remove('show');
   if(!name||!email||!pw){showErr('suError','Please fill in your name, email, and password.');return}
   if(pw.length<8){showErr('suError','Password must be at least 8 characters.');return}
+  if(pw!==pw2){showErr('suError','Passwords do not match.');return}
   if(suRole==='coach'&&code!==COACH_SETUP_CODE){showErr('suError','Incorrect coach setup code.');return}
   let coachId=null;
-  if(suRole==='client'&&code){
-    const{data:coachRow,error:cErr}=await sb.from('profiles').select('id,role').eq('invite_code',code).eq('role','trainer').maybeSingle();
-    if(cErr||!coachRow){showErr('suError','That coach invite code was not found. Leave blank to join without a coach.');return}
-    coachId=coachRow.id;
+  if(suRole==='client'){
+    if(code){
+      const{data:coachRow,error:cErr}=await sb.from('profiles').select('id,role').eq('invite_code',code).eq('role','trainer').maybeSingle();
+      if(cErr||!coachRow){showErr('suError','That coach invite code was not found.');return}
+      coachId=coachRow.id;
+    }else{
+      // no code entered — if there's exactly one coach account in the
+      // system, link automatically so clients never have to deal with codes
+      try{
+        const{data:trainers}=await sb.from('profiles').select('id').eq('role','trainer');
+        if(trainers&&trainers.length===1)coachId=trainers[0].id;
+      }catch{}
+    }
   }
   const btn=gi('suBtn');btn.disabled=true;btn.textContent='Creating account…';
   try{
