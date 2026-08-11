@@ -157,7 +157,7 @@ button,input,select,textarea{font-family:inherit}
 
 /* CHECKIN */
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.pslot{aspect-ratio:3/4;background:var(--s2);border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--muted);font-size:11px;font-weight:600;gap:8px}
+.pslot{position:relative;overflow:hidden;aspect-ratio:3/4;background:var(--s2);border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--muted);font-size:11px;font-weight:600;gap:8px}
 .pslot:hover,.pslot.filled{border-color:rgba(245,158,11,.5);background:var(--ag);color:var(--amber)}
 .mrow{display:flex;gap:6px}
 .mb{flex:1;padding:10px 4px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;transition:all .15s}
@@ -167,10 +167,14 @@ button,input,select,textarea{font-family:inherit}
 /* MODAL */
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
 .overlay.open{display:flex}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;padding:26px}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;padding:0;display:flex;flex-direction:column;overflow:hidden}
+.modal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 22px 0 26px;flex-shrink:0}
+.modal-bd{padding:14px 26px 4px;overflow-y:auto;flex:1;min-height:0}
+.modal-x{background:var(--s2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.modal-x:hover{background:var(--red);border-color:var(--red);color:#fff}
 .mtitle{font-family:var(--df);font-weight:700;font-size:22px;letter-spacing:2px;text-transform:uppercase;color:var(--text);margin-bottom:4px}
 .msub{font-size:12px;color:var(--muted);margin-bottom:20px}
-.mact{display:flex;gap:10px;margin-top:18px}
+.mact{display:flex;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--border);flex-shrink:0}
 .sr{display:flex;align-items:center;gap:10px;padding:11px;background:var(--s2);border-radius:8px;border:1px solid var(--border);margin-bottom:8px;transition:border .15s}
 .sr.aset{border-color:rgba(245,158,11,.35)}.sr.dset{border-color:rgba(34,197,94,.3);background:#0F1A0F}
 .slbl{font-family:var(--df);font-size:12px;font-weight:700;color:var(--muted);width:38px}
@@ -256,7 +260,26 @@ button,input,select,textarea{font-family:inherit}
 #toast{position:fixed;bottom:24px;right:24px;background:#1C1C26;border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;color:var(--text);z-index:500;transform:translateY(80px);opacity:0;transition:all .25s;pointer-events:none;max-width:320px}
 #toast.show{transform:translateY(0);opacity:1}
 
+/* ── mobile hardening: prevent any row from forcing horizontal/off-page
+   scroll — everything below either wraps or truncates instead of overflowing ── */
+.ctr,.pdrow,.wbhead,.catph,.cr{flex-wrap:wrap}
+.cname,.cplan,.wbname,.wbtag,.catpn,.catpm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html,body{overflow-x:hidden;max-width:100vw}
+.content{max-width:100%}
 @media(max-width:800px){.sidebar{display:none}.g2,.g3,.g4,.mgrid{grid-template-columns:1fr 1fr}.wcal{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){
+  .topbar{padding:0 12px}
+  .tlogo{font-size:18px;letter-spacing:2px}
+  .topbar-right{gap:6px}
+  .vpill{padding:2px}.vb{padding:5px 9px;font-size:10px}
+  .content{padding:14px}
+  .modal-hd{padding:16px 14px 0}
+  .modal-bd{padding:10px 14px 4px}
+  .mact{padding:12px 14px 16px}
+  .cr{gap:8px}
+  .cw{min-width:70px}
+  .pdrow{gap:6px}
+}
 @media(max-width:500px){.g2,.g3,.g4,.mgrid{grid-template-columns:1fr}.wcal{grid-template-columns:repeat(3,1fr)}}
 </style>
 </head>
@@ -396,15 +419,17 @@ button,input,select,textarea{font-family:inherit}
 <div id="toast"></div>
 
 <!-- SET LOGGER MODAL -->
-<div class="overlay" id="slOv">
+<div class="overlay" id="slOv" onmousedown="closeOverlayOnBackdrop(event,closeSL)">
   <div class="modal" style="max-width:520px">
-    <div class="ctr" style="margin-bottom:4px">
-      <div class="mtitle" id="slName" style="margin-bottom:0"></div>
-      <button class="iconbtn" onclick="openSwapFromLogger()">🔁 Swap (AI)</button>
+    <div class="modal-hd">
+      <div><div class="mtitle" id="slName" style="margin-bottom:0"></div><div class="msub" id="slMeta" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeSL()">✕</button>
     </div>
-    <div class="msub" id="slMeta"></div>
-    <div id="slSets"></div>
-    <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
+    <div class="modal-bd">
+      <button class="iconbtn" onclick="openSwapFromLogger()" style="margin-bottom:12px">🔁 Swap (AI)</button>
+      <div id="slSets"></div>
+      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
+    </div>
     <div class="mact">
       <button class="btn-g" onclick="closeSL()">Close</button>
       <button class="btn-p" id="slDone" onclick="closeSL(true)" style="flex:1"></button>
@@ -412,47 +437,58 @@ button,input,select,textarea{font-family:inherit}
   </div>
 </div>
 
-<!-- WORKOUT BUILDER MODAL (used by both coach and client) -->
-<div class="overlay" id="wbOv">
+<!-- WORKOUT BUILDER MODAL (used by client's own day, coach editing a client's day,
+     AND coach editing/creating a catalog plan template — see setWBMode()) -->
+<div class="overlay" id="wbOv" onmousedown="closeOverlayOnBackdrop(event,closeWB)">
   <div class="modal" style="max-width:720px">
-    <div class="mtitle">Edit Workout</div>
-    <div class="msub" id="wbSub"></div>
-    <div class="g3" style="margin-bottom:14px">
-      <div class="field" style="margin-bottom:0"><label>Name</label><input class="fi" id="wbNameInp" oninput="WB.name=this.value"></div>
-      <div class="field" style="margin-bottom:0"><label>Type</label>
-        <select class="fi" id="wbTypeInp" onchange="WB.type=this.value">
-          <option value="training">Training</option><option value="cardio">Cardio</option><option value="checkin">Check-In</option><option value="rest">Rest</option>
-        </select>
-      </div>
-      <div class="field" style="margin-bottom:0"><label>Date</label><input class="fi" type="date" id="wbDateInp" onchange="WB.date=this.value"></div>
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0" id="wbTitle">Edit Workout</div><div class="msub" id="wbSub" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeWB()">✕</button>
     </div>
-    <div id="wbList"></div>
-    <div class="exsearch-wrap" style="margin-top:10px">
-      <input class="fi" id="wbSearch" placeholder="+ Add exercise — type a name (e.g. squat, row, sled)…" oninput="renderExSearch(this.value)" onfocus="renderExSearch(this.value)">
-      <div class="exsearch-results" id="wbSearchRes" style="display:none"></div>
+    <div class="modal-bd">
+      <div class="g3" style="margin-bottom:14px">
+        <div class="field" style="margin-bottom:0"><label>Name</label><input class="fi" id="wbNameInp" oninput="WB.name=this.value"></div>
+        <div class="field" style="margin-bottom:0" id="wbTypeWrap"><label>Type</label>
+          <select class="fi" id="wbTypeInp" onchange="WB.type=this.value">
+            <option value="training">Training</option><option value="cardio">Cardio</option><option value="checkin">Check-In</option><option value="rest">Rest</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;display:none" id="wbPlanWrap"><label>Plan / Category</label><input class="fi" id="wbPlanInp" oninput="WB.plan=this.value" placeholder="e.g. Foundations"></div>
+        <div class="field" style="margin-bottom:0" id="wbDateWrap"><label>Date</label><input class="fi" type="date" id="wbDateInp" onchange="WB.scheduled_date=this.value"></div>
+        <div class="field" style="margin-bottom:0;display:none" id="wbDurWrap"><label>Duration (min)</label><input class="fi" type="number" id="wbDurInp" placeholder="e.g. 45"></div>
+      </div>
+      <div id="wbList"></div>
+      <div class="exsearch-wrap" style="margin-top:10px">
+        <input class="fi" id="wbSearch" placeholder="+ Add exercise — type a name (e.g. squat, row, sled)…" oninput="renderExSearch(this.value)" onfocus="renderExSearch(this.value)">
+        <div class="exsearch-results" id="wbSearchRes" style="display:none"></div>
+      </div>
     </div>
     <div class="mact">
       <button class="btn-g" onclick="closeWB()">Cancel</button>
-      <button class="btn-p" onclick="saveWB()" style="flex:1">Save Workout</button>
+      <button class="btn-p" id="wbSaveBtn" onclick="saveWB()" style="flex:1">Save Workout</button>
     </div>
   </div>
 </div>
 
 <!-- AI SWAP MODAL -->
-<div class="overlay" id="swapOv">
+<div class="overlay" id="swapOv" onmousedown="closeOverlayOnBackdrop(event,closeSwap)">
   <div class="modal" style="max-width:460px">
-    <div class="mtitle">🔁 AI Swap</div>
-    <div class="msub" id="swapSub"></div>
-    <div class="field"><label>Why does this need to change?</label>
-      <div class="swap-reason" id="swapReasons">
-        <button class="segb" data-r="Injury" onclick="setSwapReason(this)">🩹 Injury</button>
-        <button class="segb" data-r="Busy gym / no equipment" onclick="setSwapReason(this)">🏋️ Busy gym / no equipment</button>
-        <button class="segb" data-r="Doesn't like it" onclick="setSwapReason(this)">😕 Don't like it</button>
-        <button class="segb" data-r="Other" onclick="setSwapReason(this)">✏️ Other</button>
-      </div>
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">🔁 AI Swap</div><div class="msub" id="swapSub" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeSwap()">✕</button>
     </div>
-    <div class="field"><label>More detail (optional)</label><textarea class="fi" id="swapNote" rows="2" placeholder="e.g. left shoulder impingement, no barbell available…"></textarea></div>
-    <div id="swapResult"></div>
+    <div class="modal-bd">
+      <div class="field"><label>Why does this need to change?</label>
+        <div class="swap-reason" id="swapReasons">
+          <button class="segb" data-r="Injury" onclick="setSwapReason(this)">🩹 Injury</button>
+          <button class="segb" data-r="Busy gym / no equipment" onclick="setSwapReason(this)">🏋️ Busy gym / no equipment</button>
+          <button class="segb" data-r="Doesn't like it" onclick="setSwapReason(this)">😕 Don't like it</button>
+          <button class="segb" data-r="Other" onclick="setSwapReason(this)">✏️ Other</button>
+        </div>
+      </div>
+      <div class="field"><label>More detail (optional)</label><textarea class="fi" id="swapNote" rows="2" placeholder="e.g. left shoulder impingement, no barbell available…"></textarea></div>
+      <div id="swapResult"></div>
+    </div>
     <div class="mact">
       <button class="btn-g" onclick="closeSwap()">Cancel</button>
       <button class="btn-p" onclick="runAiSwap()" style="flex:1" id="swapGoBtn">Find a replacement →</button>
@@ -461,23 +497,27 @@ button,input,select,textarea{font-family:inherit}
 </div>
 
 <!-- PLAN BUILDER MODAL -->
-<div class="overlay" id="pbOv">
-  <div class="modal" style="max-width:680px">
-    <div class="mtitle">Weekly Plan</div>
-    <div class="msub" id="pbCl"></div>
-    <div id="pbCont"></div>
+<div class="overlay" id="pbOv" onmousedown="closeOverlayOnBackdrop(event,closePB)">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">Weekly Plan</div><div class="msub" id="pbCl" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closePB()">✕</button>
+    </div>
+    <div class="modal-bd"><div id="pbCont"></div></div>
     <div class="mact">
-      <button class="btn-g" onclick="closePB()">Close</button>
+      <button class="btn-g" onclick="closePB()" style="flex:1">Close</button>
     </div>
   </div>
 </div>
 
 <!-- CHECK-IN SETUP MODAL -->
-<div class="overlay" id="ciOv">
+<div class="overlay" id="ciOv" onmousedown="closeOverlayOnBackdrop(event,closeCI)">
   <div class="modal">
-    <div class="mtitle">Add Check-In</div>
-    <div class="msub" id="ciCl"></div>
-    <div id="ciCont"></div>
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">Add Check-In</div><div class="msub" id="ciCl" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeCI()">✕</button>
+    </div>
+    <div class="modal-bd"><div id="ciCont"></div></div>
     <div class="mact">
       <button class="btn-g" onclick="closeCI()">Cancel</button>
       <button class="btn-p" onclick="saveCI();closeCI()" style="flex:1">Add to Plan</button>
@@ -495,6 +535,7 @@ let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
 let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
 let aiLoad=false,selDay=2,ctab='training',ttab='clients';
 let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
+let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
 let catExp={},uploadedPDFs=[],pbPlan=null,pbClientId=null,pbWeekStart=null;
 let EXLIB=[],TEMPLATES=[],CLIENTS=[],MY_WORKOUTS=[],MY_PLANS=[];
 let WB=null,WB_ORIGIN=null; // current workout builder state + where to return focus ('client-today'|'coach-day')
@@ -748,11 +789,28 @@ async function loadAppData(){
     TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[]})):TPL_DEMO.slice();
   }catch{TEMPLATES=TPL_DEMO.slice()}
 
+  await loadSharedAIKey();
+
   if(PROFILE.role==='trainer'){
     await loadClientRoster();
   }else{
     await loadMyWorkouts();
   }
+}
+
+/* The Anthropic key only needs to be entered ONCE, by the coach, in Settings.
+   It's saved to the app_config table so every client's browser picks it up
+   automatically on load — before this, each browser only had whatever key
+   *that specific device* had typed in locally, so clients (and the coach on
+   a second device) always saw "add your API key" even after it was added
+   elsewhere. This keeps a local-storage cache too so the AI still works
+   offline-ish for a session even if this fetch fails. */
+async function loadSharedAIKey(){
+  if(DEMO)return;
+  try{
+    const{data}=await sb.from('app_config').select('ai_key').eq('id',1).maybeSingle();
+    if(data&&data.ai_key)setApiKey(data.ai_key);
+  }catch{}
 }
 
 /* Bulk-loads the coach's client roster plus this week's workouts for all of
@@ -917,6 +975,15 @@ function togglePM(){gi('pmenu').classList.toggle('open')}
 function closePM(){gi('pmenu').classList.remove('open')}
 document.addEventListener('click',e=>{if(!e.target.closest('#tav')&&!e.target.closest('#pmenu'))closePM()});
 
+/* ─── MODAL CLOSE HELPERS — click the dark backdrop or press Escape to close
+   whichever overlay is open, same as the ✕ button (safe/no-save default) ─── */
+function closeOverlayOnBackdrop(e,closeFn){if(e.target===e.currentTarget)closeFn()}
+const OVERLAY_CLOSERS=[['slOv',()=>closeSL()],['wbOv',()=>closeWB()],['swapOv',()=>closeSwap()],['pbOv',()=>closePB()],['ciOv',()=>closeCI()]];
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  for(const[id,fn]of OVERLAY_CLOSERS){const el=gi(id);if(el&&el.classList.contains('open')){fn();break}}
+});
+
 /* ─── VIEW SWITCH ─── */
 function switchView(v){
   VIEW=v;gi('cvb').classList.toggle('active',v==='client');gi('tvb').classList.toggle('active',v==='trainer');
@@ -947,7 +1014,11 @@ function renderMain(){VIEW==='client'?renderClient():renderTrainer()}
 function weekOfLabel(){const s=weekStartISO(new Date());const d=new Date(s+'T00:00:00');return `Week of ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
 
 function renderClient(){
-  if(ctab==='settings'){gi('mc').innerHTML=settingsPanel();return}
+  // the tabs bar is the ONLY nav on mobile (sidebar hides below 800px), so it
+  // must always be rendered — including Settings/Progress — or there's no way
+  // back once you're on a tab like Settings that used to bypass this entirely.
+  const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  if(ctab==='settings'){gi('mc').innerHTML=clientTabs+settingsPanel();return}
   const start=weekStartISO(new Date());
   const days=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(start,i);
@@ -981,7 +1052,7 @@ function renderClient(){
     </div>
   </div>`;
 
-  const tabs=`<div class="tabs">${[{id:'training',l:'🏋️ Training'},{id:'ai',l:'⚡ AI Assistant'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  const tabs=clientTabs;
 
   let body='';
   if(ctab==='training'||ctab==='today'){
@@ -1047,12 +1118,15 @@ function settingsPanel(){
         <button class="unit-opt ${isImperial()?'on':''}" onclick="setUnits('imperial')">Imperial (lb/mi)</button>
       </div>
     </div>
-    <div class="card">
+    ${isT?`<div class="card">
       <div class="ct">🔑 Anthropic API Key</div>
-      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">Powers AI chat, the AI exercise-swap tool, and workout generation. Stored only in this browser.</p>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">Powers AI chat, the AI exercise-swap tool, PDF extraction, and workout generation for you AND every client — enter it once here and it syncs automatically to their devices.</p>
       <input class="fi" type="password" id="stAk" placeholder="sk-ant-..." style="margin-bottom:8px" value="${apiKey()?'••••••••••••••••':''}">
       <button onclick="saveAKSettings()" class="btn-p">Save Key</button>
-    </div>
+    </div>`:`<div class="card">
+      <div class="ct">🤖 AI Assistant</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6">${apiKey()?'✅ Enabled — your coach has set this up for you.':'⏳ Not enabled yet — ask your coach to add their Anthropic API key in their Settings.'}</p>
+    </div>`}
     ${isT?`<div class="card">
       <div class="ct">🔗 Invite a Client</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Send a client this link. It opens the app straight on the Sign Up screen with your code already filled in — they just add their name, email, and password.</p>
@@ -1100,9 +1174,16 @@ async function setUnits(u){
   if(!DEMO)await sb.from('profiles').update({units:u}).eq('id',USER.id);
   toast(`Units set to ${u==='imperial'?'Imperial (lb/mi)':'Metric (kg/km)'}`);renderMain();
 }
-function saveAKSettings(){
+async function saveAKSettings(){
   const v=gi('stAk').value.trim();
-  if(v&&!v.startsWith('••')){setApiKey(v);toast('API key saved ✓')}
+  if(!v||v.startsWith('••')){toast('Enter a new key first — it currently shows •••• because one is already saved.');return}
+  setApiKey(v);
+  if(!DEMO&&PROFILE?.role==='trainer'){
+    try{await sb.from('app_config').upsert({id:1,ai_key:v},{onConflict:'id'});toast('API key saved ✓ — synced to every client automatically')}
+    catch(e){toast('Saved on this device, but could not sync to clients: '+e.message)}
+  }else{
+    toast('API key saved ✓');
+  }
   renderMain();
 }
 
@@ -1137,7 +1218,7 @@ function renderAIM(){
 async function callClaude(messages,system,maxTokens=1000){
   const k=apiKey();
   if(!k)throw new Error('NO_KEY');
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:maxTokens,system,messages})});
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:maxTokens,system,messages})});
   const d=await r.json();
   if(d.error)throw new Error(d.error.message||'AI error');
   return d.content?.[0]?.text||'';
@@ -1183,12 +1264,20 @@ function ciPanel(){
     <div class="ct">📸 Weekly Check-In</div>
     <div style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:10px">Body Stats</div>
-      <div class="g2">${[{l:wl,p:isImperial()?'e.g. 151':'e.g. 68.5'},{l:'Waist (cm)',p:'e.g. 74'},{l:'Hips (cm)',p:'e.g. 96'},{l:'Chest (cm)',p:'e.g. 88'}].map(f=>`<div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">${f.l}</div><input class="fi" placeholder="${f.p}"></div>`).join('')}</div>
+      <div class="g2">
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">${wl}</div><input class="fi" inputmode="decimal" placeholder="${isImperial()?'e.g. 151':'e.g. 68.5'}" value="${ciStats.weight}" oninput="ciStats.weight=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Waist (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 74" value="${ciStats.waist}" oninput="ciStats.waist=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Hips (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 96" value="${ciStats.hips}" oninput="ciStats.hips=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Chest (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 88" value="${ciStats.chest}" oninput="ciStats.chest=this.value"></div>
+      </div>
     </div>
     <div style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:10px">Progress Photos</div>
-      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Upload front, side, and back photos for your coach.</div>
-      <div class="pgrid">${['Front','Side','Back'].map((label,i)=>`<div class="pslot ${photos[i]?'filled':''}" onclick="tph(${i})"><div style="font-size:24px">${photos[i]?'📸':'+'}</div><div>${photos[i]?'UPLOADED':label}</div></div>`).join('')}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Tap a slot to take or upload a photo for your coach.</div>
+      <div class="pgrid">${['Front','Side','Back'].map((label,i)=>`<div class="pslot ${photos[i]?'filled':''}" onclick="gi('ciFile${i}').click()" style="${photos[i]?`background-image:url('${photos[i]}');background-size:cover;background-position:center`:''}">
+        ${photos[i]?`<button onclick="event.stopPropagation();removePhoto(${i})" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px">✕</button>`:`<div style="font-size:24px">+</div><div>${label}</div>`}
+        <input type="file" accept="image/*" capture="environment" id="ciFile${i}" style="display:none" onchange="onPhotoSelected(event,${i})">
+      </div>`).join('')}</div>
     </div>
     <div style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:10px">How are you feeling?</div>
@@ -1196,14 +1285,51 @@ function ciPanel(){
     </div>
     <div style="margin-bottom:18px">
       <div class="ct" style="margin-bottom:8px">Notes for your coach</div>
-      <textarea class="fi" rows="3" placeholder="How has the week been? Any issues, highlights, or questions?" style="resize:vertical"></textarea>
+      <textarea class="fi" rows="3" placeholder="How has the week been? Any issues, highlights, or questions?" style="resize:vertical" oninput="ciNotes=this.value">${ciNotes}</textarea>
     </div>
-    <button class="btn-p" onclick="subCI()">Submit Check-In</button>
+    <button class="btn-p" id="ciSubBtn" onclick="subCI()">Submit Check-In</button>
   </div>`;
 }
-function tph(i){photos[i]=photos[i]?null:'uploaded';renderMain()}
+/* Resizes/compresses the photo client-side (max ~900px, JPEG ~72% quality)
+   before storing it as a data URL — keeps check-in rows a reasonable size
+   without needing a separate Supabase Storage bucket set up. */
+function onPhotoSelected(e,i){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxDim=900;let w=img.width,h=img.height;
+      if(w>=h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim}
+      else if(h>w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      photos[i]=canvas.toDataURL('image/jpeg',0.72);
+      renderMain();
+    };
+    img.onerror=()=>toast('Could not read that image — try another photo');
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+function removePhoto(i){photos[i]=null;renderMain()}
 function setMd(i){mood=i;renderMain()}
-function subCI(){ciDone=true;renderMain();toast('Check-in submitted! Your coach has been notified. ✓')}
+async function subCI(){
+  const btn=gi('ciSubBtn');if(btn){btn.disabled=true;btn.textContent='Submitting…'}
+  const payload={
+    client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
+    weight_kg:ciStats.weight?dispToKg(+ciStats.weight):null,
+    waist_cm:ciStats.waist?+ciStats.waist:null,hips_cm:ciStats.hips?+ciStats.hips:null,chest_cm:ciStats.chest?+ciStats.chest:null,
+    mood,notes:ciNotes||null,photos:photos.filter(Boolean)
+  };
+  if(!DEMO){
+    try{await sb.from('checkins').insert(payload)}
+    catch(e){toast('Could not submit check-in: '+e.message);if(btn){btn.disabled=false;btn.textContent='Submit Check-In'}return}
+  }
+  ciDone=true;photos=[null,null,null];mood=null;ciStats={weight:'',waist:'',hips:'',chest:''};ciNotes='';
+  renderMain();toast('Check-in submitted! Your coach has been notified. ✓');
+}
 
 /* ═══ SET LOGGER — track-type aware (reps+weight / distance+time / time only /
    reps only / sled level+distance), unit-aware display, writes back into the
@@ -1316,13 +1442,26 @@ function openWB(workout,origin,clientId){
   if(!WB.exercises)WB.exercises=[];
   WB_ORIGIN=origin;
   WB._clientId=clientId||workout.client_id||(VIEW==='client'?USER.id:null);
-  gi('wbSub').textContent=origin==='coach-day'?`Editing for ${(CLIENTS.find(c=>c.id===WB._clientId)||{}).name||'client'}`:'Editing your workout';
+  const isTemplate=origin==='template';
+  setWBMode(isTemplate?'template':'assigned');
+  gi('wbTitle').textContent=isTemplate?'Edit Catalog Workout':'Edit Workout';
+  gi('wbSub').textContent=isTemplate?'Changes apply to the catalog template — clients already assigned this workout keep their own copy.':(origin==='coach-day'?`Editing for ${(CLIENTS.find(c=>c.id===WB._clientId)||{}).name||'client'}`:'Editing your workout');
+  gi('wbSaveBtn').textContent=isTemplate?'Save to Catalog':'Save Workout';
   gi('wbNameInp').value=WB.name||'';
   gi('wbTypeInp').value=WB.type||'training';
   gi('wbDateInp').value=WB.scheduled_date||WB.date||todayISO();
+  gi('wbPlanInp').value=WB.plan||'';
+  gi('wbDurInp').value=WB.dur||'';
   gi('wbSearch').value='';gi('wbSearchRes').style.display='none';
   renderWBList();
   gi('wbOv').classList.add('open');
+}
+function setWBMode(mode){
+  const t=mode==='template';
+  gi('wbTypeWrap').style.display=t?'none':'block';
+  gi('wbPlanWrap').style.display=t?'block':'none';
+  gi('wbDateWrap').style.display=t?'none':'block';
+  gi('wbDurWrap').style.display=t?'block':'none';
 }
 function closeWB(){gi('wbOv').classList.remove('open');WB=null}
 
@@ -1384,8 +1523,34 @@ function wbAddEx(lib){
 }
 document.addEventListener('click',e=>{if(!e.target.closest('.exsearch-wrap'))  {const r=gi('wbSearchRes');if(r)r.style.display='none'}});
 
+/* turns a full logged exercise (numeric fields) back into the compact
+   display string ("r") that catalog templates store, so a template saved
+   from the builder round-trips cleanly through tplExToWkEx when later
+   assigned to a client. */
+function exToRStr(ex){
+  if(ex.track==='distance_time')return `${ex.distance_m?mToDisp(ex.distance_m)+dUnit():''}${ex.time_sec?' in '+secToMMSS(ex.time_sec):''}`.trim();
+  if(ex.track==='time_only')return ex.time_sec?secToMMSS(ex.time_sec):'';
+  if(ex.track==='reps_only')return String(ex.reps??'');
+  if(ex.track==='level_distance')return `${ex.level?'Level '+ex.level+' ':''}${ex.distance_m?mToDisp(ex.distance_m)+dUnit():''}`.trim();
+  return String(ex.reps??'');
+}
+
 async function saveWB(){
   WB.name=gi('wbNameInp').value.trim()||'Workout';
+  if(WB_ORIGIN==='template'){
+    const planName=gi('wbPlanInp').value.trim()||'Custom Plan';
+    const dur=+gi('wbDurInp').value||(WB.exercises.length?Math.max(10,WB.exercises.length*6):0);
+    const tplObj={id:WB.id,name:WB.name,plan:planName,dur,
+      equip:[...new Set(WB.exercises.map(e=>e.equip).filter(Boolean))].join(' · '),
+      ex:WB.exercises.map(e=>({ex_id:e.ex_id,n:e.n,s:e.s||1,r:exToRStr(e),rest:e.rest||'',grp:e.grp||null}))};
+    const idx=TEMPLATES.findIndex(t=>t.id===tplObj.id);
+    if(idx>=0)TEMPLATES[idx]=tplObj;else TEMPLATES.push(tplObj);
+    if(!DEMO){
+      try{await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,created_by:USER.id,is_global:true},{onConflict:'id'})}
+      catch(e){toast('Save failed: '+e.message);return}
+    }
+    toast('Saved to catalog ✓');closeWB();renderMain();return;
+  }
   WB.type=gi('wbTypeInp').value;
   WB.scheduled_date=gi('wbDateInp').value;
   WB.dur=WB.exercises.length?Math.max(10,WB.exercises.length*6):0;
@@ -1416,6 +1581,10 @@ async function loadClientWorkouts(clientId){
     const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',clientId).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
     c._workouts=data||[];
   }catch{c._workouts=c._workouts||[]}
+  try{
+    const{data:cis}=await sb.from('checkins').select('*').eq('client_id',clientId).order('submitted_at',{ascending:false}).limit(3);
+    c._checkins=cis||[];
+  }catch{c._checkins=c._checkins||[]}
 }
 
 /* ═══ AI EXERCISE SWAP — grounded to the real exercise library so the model
@@ -1503,14 +1672,16 @@ async function applySwapChoice(){
 
 /* ═══ TRAINER ═══ */
 function renderTrainer(){
-  if(ttab==='settings'){gi('mc').innerHTML=settingsPanel();return}
-  const tabs=`<div class="tabs">${[{id:'clients',l:'👥 Clients'},{id:'catalog',l:'📚 Catalog'},{id:'upload',l:'📄 Upload Plans'},{id:'overview',l:'📊 Overview'},{id:'ai',l:'⚡ AI Tools'}].map(t=>`<button class="tab ${ttab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  // tabs bar is always rendered (same reasoning as renderClient) so Settings
+  // is reachable AND escapable on mobile, where the sidebar is hidden.
+  const tabs=`<div class="tabs">${[{id:'clients',l:'👥 Clients'},{id:'catalog',l:'📚 Catalog'},{id:'upload',l:'📄 Upload'},{id:'overview',l:'📊 Overview'},{id:'ai',l:'⚡ AI Tools'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ttab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
   let body='';
   if(ttab==='clients')body=rClients();
   else if(ttab==='catalog')body=rCatalog();
   else if(ttab==='upload')body=rUpload();
   else if(ttab==='overview')body=rOverview();
   else if(ttab==='ai'){body=rTrainerAI();setTimeout(attachAI,0)}
+  else if(ttab==='settings')body=settingsPanel();
   gi('mc').innerHTML=tabs+body;
 }
 
@@ -1582,30 +1753,47 @@ function rClientDetail(c){
   <div class="card csm">
     <div class="ct">📝 Notes</div>
     ${[{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
-  </div>`;
+  </div>
+  ${(c._checkins&&c._checkins.length)?`<div class="card csm">
+    <div class="ct">📸 Recent Check-Ins</div>
+    ${c._checkins.map(ci=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px"><span>${ci.submitted_at?new Date(ci.submitted_at).toLocaleDateString('en-GB'):''}</span>${ci.mood!=null?`<span style="font-size:16px">${['😩','😐','🙂','😄','🔥'][ci.mood]||''}</span>`:''}</div>
+      <div style="font-size:12px;color:var(--text)">${[ci.weight_kg?`Weight: ${kgToDisp(ci.weight_kg)}${wUnit()}`:'',ci.waist_cm?`Waist: ${ci.waist_cm}cm`:'',ci.hips_cm?`Hips: ${ci.hips_cm}cm`:'',ci.chest_cm?`Chest: ${ci.chest_cm}cm`:''].filter(Boolean).join(' · ')||'No stats logged'}</div>
+      ${ci.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">"${ci.notes}"</div>`:''}
+      ${(ci.photos&&ci.photos.length)?`<div style="display:flex;gap:6px;margin-top:6px">${ci.photos.map(p=>`<img src="${p}" style="width:48px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">`).join('')}</div>`:''}
+    </div>`).join('')}
+  </div>`:''}`;
 }
 
 /* ── CATALOG ── */
 function rCatalog(){
   const plans=[...new Set(TEMPLATES.map(w=>w.plan))];
   return`<div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
       <div><div style="font-family:var(--df);font-size:18px;font-weight:700;letter-spacing:1px;color:var(--text)">Workout Catalog</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${TEMPLATES.length} workout templates from ${plans.length} training plans · ${EXLIB.length} exercises in your library</div></div>
-      <button onclick="setTab('upload')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">+ Upload PDF</button>
+      <div style="display:flex;gap:8px">
+        <button onclick="newPlan()" class="btn-g" style="font-size:12px;padding:8px 14px">+ New Plan</button>
+        <button onclick="setTab('upload')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">+ Upload PDF</button>
+      </div>
     </div>
-    ${plans.map(plan=>{const wks=TEMPLATES.filter(w=>w.plan===plan);return`<div style="margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--amber);text-transform:uppercase;margin-bottom:8px">📋 ${plan}</div>
+    ${plans.length?plans.map(plan=>{const wks=TEMPLATES.filter(w=>w.plan===plan);return`<div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--amber);text-transform:uppercase">📋 ${plan}</div>
+        <button class="iconbtn" onclick="newTemplateInPlan('${plan.replace(/'/g,"\\'")}')">+ Add Workout</button>
+      </div>
       ${wks.map(w=>`<div class="catpl">
         <div class="catph" onclick="togCat('${w.id}')">
           <div><div class="catpn">${w.name}</div><div class="catpm">~${w.dur||'?'} min · ${w.ex.length} exercises · ${w.equip||'—'}</div></div>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
             <button onclick="event.stopPropagation();assignTemplate('${w.id}')" style="background:var(--ag);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;color:var(--amber);font-size:11px;font-weight:700;cursor:pointer">Use for a client</button>
+            <button class="iconbtn" onclick="event.stopPropagation();editTemplate('${w.id}')">✏️</button>
+            <button class="iconbtn danger" onclick="event.stopPropagation();removeTemplate('${w.id}')">✕</button>
             <span style="color:var(--muted);font-size:14px">${catExp[w.id]?'▲':'▼'}</span>
           </div>
         </div>
-        ${catExp[w.id]?`<div class="catex">${w.ex.map(e=>`<div class="cex"><div class="cexn">${e.n}</div><div class="cexd">${e.s} × ${e.r}${e.rest?` · Rest ${e.rest}`:''}</div></div>`).join('')}</div>`:''}
+        ${catExp[w.id]?`<div class="catex">${w.ex.map(e=>`<div class="cex"><div class="cexn">${e.n}</div><div class="cexd">${e.s} × ${e.r}${e.rest?` · Rest ${e.rest}`:''}</div></div>`).join('')||'<p style="font-size:12px;color:var(--muted);padding:6px 0">No exercises yet — tap ✏️ to add some.</p>'}</div>`:''}
       </div>`).join('')}
-    </div>`}).join('')}
+    </div>`}).join(''):`<div class="card" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:13px">No plans yet — click "+ New Plan" to build your first one.</div></div>`}
   </div>`;
 }
 function togCat(id){catExp[id]=!catExp[id];renderMain()}
@@ -1615,6 +1803,29 @@ function assignTemplate(id){
   const clientId=SELCLIENT?SELCLIENT.id:CLIENTS[0].id;
   openWB({id:uid(),name:t.name,type:'training',scheduled_date:todayISO(),dur:t.dur,exercises:t.ex.map(tplExToWkEx)},'coach-day',clientId);
   toast(`Loaded "${t.name}" — pick the date and save to assign it`);
+}
+/* ── CATALOG / PLAN EDITOR — create brand new plans & workouts, or open any
+   existing catalog workout and add/remove/edit its exercises. Fully separate
+   from a client's assigned copy: editing the catalog never touches workouts
+   already handed out (those are independent snapshots). ── */
+function newPlan(){
+  const name=(prompt('Name this new plan (e.g. "Fat Loss Phase 1"):')||'').trim();
+  if(!name)return;
+  openWB({id:uid(),name:'Day 1',plan:name,dur:0,exercises:[]},'template');
+}
+function newTemplateInPlan(planName){
+  openWB({id:uid(),name:'New Workout',plan:planName||'',dur:0,exercises:[]},'template');
+}
+function editTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  openWB({id:t.id,name:t.name,plan:t.plan,dur:t.dur,exercises:(t.ex||[]).map(tplExToWkEx)},'template');
+}
+async function removeTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  if(!confirm(`Remove "${t.name}" from the catalog? Clients already assigned this workout keep their own copy.`))return;
+  TEMPLATES=TEMPLATES.filter(x=>x.id!==id);
+  if(!DEMO){try{await sb.from('workout_templates').delete().eq('id',id)}catch(e){toast('Delete failed: '+e.message)}}
+  renderMain();toast('Removed from catalog');
 }
 
 /* ── UPLOAD ── */
@@ -1658,7 +1869,7 @@ async function procPDFs(files){
     try{
       const b64=await f2b64(file);gi('pf').style.width='40%';gi('ust').textContent='Extracting…';
       const k=apiKey();
-      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-beta':'pdfs-2024-09-25','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`Extract all workout sessions from this PDF. Return ONLY a JSON array of objects, each with: name, plan (programme name), duration (mins, number), category (strength/cardio/core/mobility), equipment (string), exercises (array of {n:name, s:sets number, r:reps or distance/time string, rest:string}). Raw JSON only.`}]}]})});
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-beta':'pdfs-2024-09-25','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`Extract all workout sessions from this PDF. Return ONLY a JSON array of objects, each with: name, plan (programme name), duration (mins, number), category (strength/cardio/core/mobility), equipment (string), exercises (array of {n:name, s:sets number, r:reps or distance/time string, rest:string}). Raw JSON only.`}]}]})});
       gi('pf').style.width='70%';gi('ust').textContent='Adding to catalog…';
       const d=await r.json();const raw=d.content?.[0]?.text||'[]';
       let extracted=[];try{extracted=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{extracted=[]}
@@ -1734,38 +1945,82 @@ async function genPlan(){
 
 /* ═══ WEEKLY PLAN BUILDER (per client) ═══ each day is a real assigned_workout
    (or empty = rest). Clicking a day opens the Workout Builder for that date. */
+let pbSelDay=null,pbPlanFilter=null;
 function openPB(cid){
   const c=CLIENTS.find(x=>x.id===cid);if(!c)return;SELCLIENT=c;
   gi('pbCl').textContent=c.name;
-  pbClientId=cid;pbWeekStart=weekStartISO(new Date());
+  pbClientId=cid;pbWeekStart=weekStartISO(new Date());pbSelDay=null;
+  pbPlanFilter=[...new Set(TEMPLATES.map(t=>t.plan))][0]||null;
   loadClientWorkouts(cid).then(renderPB);
   renderPB();
   gi('pbOv').classList.add('open');
 }
 
+function pbSelectDay(i){pbSelDay=pbSelDay===i?null:i;renderPB()}
+function pbSetPlanFilter(p){pbPlanFilter=p;renderPB()}
+function pbDragStart(e,tplId){e.dataTransfer.setData('text/plain',tplId);e.dataTransfer.effectAllowed='copy'}
+function pbAllowDrop(e){e.preventDefault();e.dataTransfer.dropEffect='copy'}
+function pbDrop(e,dayIdx){e.preventDefault();const tplId=e.dataTransfer.getData('text/plain');if(tplId)assignTemplateToDay(tplId,dayIdx)}
+
+/* Assigns a catalog template straight onto a specific day — via drag-and-drop
+   (desktop) or tap-to-select-day-then-tap-workout (touch/mobile, where native
+   drag is unreliable). Writes immediately; the ✏️ pencil on each day still
+   opens the full Workout Builder for manual fine-tuning after. */
+async function assignTemplateToDay(tplId,dayIdx){
+  const t=TEMPLATES.find(x=>x.id===tplId);if(!t)return;
+  const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
+  const iso=addDaysISO(pbWeekStart,dayIdx);
+  c._workouts=c._workouts||[];
+  const existing=c._workouts.find(w=>w.scheduled_date===iso);
+  const wk={id:existing?existing.id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:iso,name:t.name,type:'training',dur:t.dur,exercises:t.ex.map(tplExToWkEx),status:'pending'};
+  const idx=c._workouts.findIndex(w=>w.scheduled_date===iso);
+  if(idx>=0)c._workouts[idx]=wk;else c._workouts.push(wk);
+  if(!DEMO){
+    try{await sb.from('assigned_workouts').upsert({id:wk.id,client_id:wk.client_id,coach_id:wk.coach_id,scheduled_date:wk.scheduled_date,name:wk.name,type:wk.type,dur:wk.dur,exercises:wk.exercises,status:wk.status},{onConflict:'id'})}
+    catch(e){toast('Could not assign: '+e.message);return}
+  }
+  toast(`"${t.name}" assigned to ${DEMO_DAYS[dayIdx]} ✓`);
+  pbSelDay=null;renderPB();
+}
+
 function renderPB(){
   const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
   const wks=c._workouts||[];
+  const plans=[...new Set(TEMPLATES.map(t=>t.plan))];
+  if(!pbPlanFilter||!plans.includes(pbPlanFilter))pbPlanFilter=plans[0]||null;
+  const shown=pbPlanFilter?TEMPLATES.filter(t=>t.plan===pbPlanFilter):TEMPLATES;
   gi('pbCont').innerHTML=`
     <div class="abox" style="margin-bottom:14px">
       <div class="ablbl">⚡ AI Week Generator</div>
-      <div style="display:flex;gap:8px;margin-top:8px">
-        <input class="fi" id="pbGoals" placeholder="e.g. Fat loss, 3x/week, intermediate, 45 min, full gym..." style="flex:1">
-        <button onclick="genPBPlan()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer;white-space:nowrap">Generate</button>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <input class="fi" id="pbGoals" placeholder="e.g. Fat loss, 3x/week, intermediate, 45 min, full gym..." style="flex:1;min-width:180px">
+        <button onclick="genPBPlan()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;height:40px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer;white-space:nowrap">Generate</button>
       </div>
     </div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">1 · Pick a day ${pbSelDay!=null?`<span style="color:var(--amber)">(${DEMO_DAYS[pbSelDay]} selected — tap a workout below to assign it)</span>`:''}</div>
     ${DEMO_DAYS.map((day,i)=>{
       const iso=addDaysISO(pbWeekStart,i);
       const wk=wks.find(w=>w.scheduled_date===iso);
       const c2=wk?tc(wk.type):'#3A3A50';
-      return`<div class="pdrow" onclick='openWB(${wk?JSON.stringify(wk).replace(/'/g,"&apos;"):JSON.stringify({name:"Training",type:"training",scheduled_date:iso,exercises:[]}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'>
+      const sel=pbSelDay===i;
+      return`<div class="pdrow" style="${sel?`border-color:var(--amber);background:var(--ag)`:''}" onclick="pbSelectDay(${i})" ondragover="pbAllowDrop(event)" ondrop="pbDrop(event,${i})">
         <div class="pdlbl">${day}</div>
         <div style="background:${c2}20;border:1px solid ${c2}30;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:${c2};flex:1">${wk?wk.name:'Rest / unscheduled'}</div>
-        <div style="font-size:11px;color:var(--muted)">${wk?(wk.exercises||[]).length+' ex · ~'+ (wk.dur||0)+'min':'tap to add'}</div>
+        <div style="font-size:11px;color:var(--muted)">${wk?(wk.exercises||[]).length+' ex · ~'+ (wk.dur||0)+'min':(sel?'tap a workout →':'tap to select')}</div>
+        <button class="iconbtn" onclick='event.stopPropagation();openWB(${wk?JSON.stringify(wk).replace(/'/g,"&apos;"):JSON.stringify({name:"Training",type:"training",scheduled_date:iso,exercises:[]}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'>✏️</button>
       </div>`;
     }).join('')}
-    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:14px 0 10px">Add from Catalog</div>
-    ${TEMPLATES.slice(0,8).map(w=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer" onclick='openWB(${JSON.stringify({id:uid(),name:w.name,type:"training",scheduled_date:pbWeekStart,dur:w.dur,exercises:w.ex.map(tplExToWkEx)}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'><div><div style="font-size:13px;font-weight:500;color:var(--text)">${w.name}</div><div style="font-size:11px;color:var(--muted)">${w.plan} · ${w.ex.length} exercises</div></div><span style="color:var(--amber);font-weight:700;font-size:14px">+</span></div>`).join('')}`;
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">2 · Drag or tap a workout to assign</div>
+      <button class="iconbtn" onclick="newTemplateInPlan(pbPlanFilter||'')">+ New Workout</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      ${plans.map(p=>`<button class="segb ${pbPlanFilter===p?'on':''}" style="flex:0 0 auto;padding:6px 12px" onclick="pbSetPlanFilter('${p.replace(/'/g,"\\'")}')">${p}</button>`).join('')}
+    </div>
+    ${shown.length?shown.map(w=>`<div class="pdrow" draggable="true" ondragstart="pbDragStart(event,'${w.id}')" style="cursor:${pbSelDay!=null?'pointer':'grab'}" onclick="${pbSelDay!=null?`assignTemplateToDay('${w.id}',${pbSelDay})`:`toast('Select a day above first, or drag this onto a day')`}">
+        <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">${w.name}</div><div style="font-size:11px;color:var(--muted)">${w.plan} · ${w.ex.length} exercises · ~${w.dur||'?'} min</div></div>
+        <span style="color:var(--amber);font-weight:700;font-size:14px">${pbSelDay!=null?'+ Assign':'⠿ Drag'}</span>
+      </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts in this plan yet.</p>`}`;
 }
 
 async function genPBPlan(){
