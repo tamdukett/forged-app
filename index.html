@@ -703,16 +703,41 @@ async function loadAppData(){
   }catch{TEMPLATES=TPL_DEMO.slice()}
 
   if(PROFILE.role==='trainer'){
-    try{
-      const{data}=await sb.from('profiles').select('*').eq('coach_id',PROFILE.id).order('full_name');
-      CLIENTS=(data||[]).map(c=>({id:c.id,name:c.full_name||c.email,ini:ini(c.full_name||c.email||'?'),
-        col:['#8B5CF6','#06B6D4','#F59E0B','#22C55E','#EF4444'][Math.abs(hashStr(c.id))%5],
-        plan:'—',comp:0,streak:0,status:'active',wt:0,goal:0,exp:'—',sess:0,
-        equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric'}));
-    }catch{CLIENTS=[]}
+    await loadClientRoster();
   }else{
     await loadMyWorkouts();
   }
+}
+
+/* Bulk-loads the coach's client roster plus this week's workouts for all of
+   them in one extra query, so compliance/session counts on the roster are
+   real numbers instead of placeholders. */
+async function loadClientRoster(){
+  try{
+    const{data,error}=await sb.from('profiles').select('*').eq('coach_id',PROFILE.id).order('full_name');
+    if(error)throw error;
+    const rows=data||[];
+    const ids=rows.map(c=>c.id);
+    let byClient={};
+    if(ids.length){
+      const start=weekStartISO(new Date());const end=addDaysISO(start,7);
+      const{data:wks}=await sb.from('assigned_workouts').select('*').in('client_id',ids).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
+      (wks||[]).forEach(w=>{(byClient[w.client_id]=byClient[w.client_id]||[]).push(w)});
+    }
+    CLIENTS=rows.map(c=>{
+      const wks=byClient[c.id]||[];
+      const trainable=wks.filter(w=>w.type==='training'||w.type==='cardio');
+      const done=trainable.filter(w=>w.status==='done').length;
+      const comp=trainable.length?Math.round(done/trainable.length*100):0;
+      return{id:c.id,name:c.full_name||c.email,ini:ini(c.full_name||c.email||'?'),
+        col:['#8B5CF6','#06B6D4','#F59E0B','#22C55E','#EF4444'][Math.abs(hashStr(c.id))%5],
+        plan:'—',comp,sessDone:done,sessTotal:trainable.length,streak:0,
+        status:!trainable.length?'active':comp>=70?'active':comp>=40?'warning':'danger',
+        wt:0,goal:0,exp:'—',sess:trainable.length,
+        equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric',
+        _workouts:wks};
+    });
+  }catch(e){console.warn('FORGED: could not load client roster',e);CLIENTS=[]}
 }
 
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h}
@@ -1456,17 +1481,27 @@ function rClients(){
   const detail=SELCLIENT?rClientDetail(SELCLIENT):`<div class="card" style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">👈</div><div style="font-size:13px">Select a client to view their profile and training plan</div></div>`;
   return`<div class="g2" style="align-items:start">
     <div>
-      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:12px">Client Roster — ${CLIENTS.length} Clients</div>
+      <div class="ctr" style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Client Roster — ${CLIENTS.length} Clients</div>
+        <button class="iconbtn" onclick="refreshClients()">🔄 Refresh</button>
+      </div>
       ${CLIENTS.map(c=>{const bc=c.status==='active'?'bok':c.status==='warning'?'bwn':'bbd';const bt=c.status==='active'?'On Track':c.status==='warning'?'At Risk':'Drop Off';return`<div class="cr ${SELCLIENT?.id===c.id?'sel':''}" onclick="selCl('${c.id}')">
         ${av(c.ini,c.col,38)}
         <div style="flex:1;min-width:0"><div class="cname">${c.name}</div><div class="cplan">${c.email||c.plan||''}</div></div>
-        <div class="cw"><div class="cwl"><span>Compliance</span><span>${c.comp}%</span></div><div class="ctrack"><div class="cfill" style="width:${c.comp}%;background:${c.comp>70?'#22C55E':c.comp>40?'#F59E0B':'#EF4444'}"></div></div></div>
-        <div class="sch">${c.streak>0?`🔥 ${c.streak}d`:'—'}</div>
+        <div class="cw"><div class="cwl"><span>This week</span><span>${c.sessDone||0}/${c.sessTotal||0} done</span></div><div class="ctrack"><div class="cfill" style="width:${c.comp}%;background:${c.comp>70?'#22C55E':c.comp>40?'#F59E0B':'#EF4444'}"></div></div></div>
         <span class="badge ${bc}">${bt}</span>
       </div>`}).join('')}
     </div>
     <div class="col">${detail}</div>
   </div>`;
+}
+
+async function refreshClients(){
+  toast('Refreshing…');
+  await loadClientRoster();
+  if(SELCLIENT){SELCLIENT=CLIENTS.find(c=>c.id===SELCLIENT.id)||null;if(SELCLIENT)await loadClientWorkouts(SELCLIENT.id)}
+  renderMain();
+  toast(`Roster refreshed — ${CLIENTS.length} client${CLIENTS.length===1?'':'s'} ✓`);
 }
 
 async function selCl(id){
@@ -1476,21 +1511,27 @@ async function selCl(id){
 }
 
 function rClientDetail(c){
-  const wks=c._workouts||[];
+  const wks=(c._workouts||[]).slice().sort((a,b)=>a.scheduled_date<b.scheduled_date?-1:1);
+  const completed=wks.filter(w=>w.status==='done');
   return`<div class="card">
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">${av(c.ini,c.col,46)}<div><div style="font-family:var(--df);font-size:20px;font-weight:700;letter-spacing:1px">${c.name}</div><div style="font-size:12px;color:var(--muted)">${c.email||''}</div></div></div>
-    <div class="g4" style="margin-bottom:14px">${[{l:'Weight',v:c.wt?c.wt+'kg':'—'},{l:'Units',v:(c.units==='imperial'?'lb/mi':'kg/km')},{l:'Compliance',v:c.comp+'%'},{l:'🔥 Streak',v:c.streak+'d'}].map(s=>`<div class="smi"><div class="sv" style="font-size:22px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
+    <div class="g4" style="margin-bottom:14px">${[{l:'This Week',v:(c.sessDone||0)+'/'+(c.sessTotal||0)},{l:'Compliance',v:c.comp+'%'},{l:'Units',v:(c.units==='imperial'?'lb/mi':'kg/km')},{l:'Completed',v:String(completed.length)}].map(s=>`<div class="smi"><div class="sv" style="font-size:22px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button onclick="openPB('${c.id}')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">📋 Edit Weekly Plan</button>
       <button onclick="openCI2('${c.id}')" class="btn-g" style="font-size:12px;padding:8px 14px">📸 Add Check-In</button>
     </div>
   </div>
   <div class="card csm">
-    <div class="ctr"><div class="ct" style="margin-bottom:0">This Week's Workouts</div></div>
-    ${wks.length?wks.map(w=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
-      <div><div style="font-size:13px;font-weight:600;color:var(--text)">${w.name}</div><div style="font-size:11px;color:var(--muted)">${w.scheduled_date} · ${(w.exercises||[]).length} exercises${w.status==='done'?' · ✓ done':''}</div></div>
+    <div class="ctr"><div class="ct" style="margin-bottom:0">This Week's Workouts</div><button class="iconbtn" onclick="refreshClients()">🔄 Refresh</button></div>
+    ${wks.length?wks.map(w=>{
+      const done=w.status==='done';
+      return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);${done?'opacity:.85':''}">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span style="font-size:16px;flex-shrink:0">${done?'✅':w.type==='rest'?'🛌':w.type==='checkin'?'📸':'⏳'}</span>
+        <div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">${w.name}</div><div style="font-size:11px;color:${done?'var(--green)':'var(--muted)'}">${w.scheduled_date} · ${(w.exercises||[]).length} exercises${done?' · Completed':' · Pending'}</div></div>
+      </div>
       <button class="iconbtn" onclick='openWB(${JSON.stringify(w).replace(/'/g,"&apos;")},"coach-day","${c.id}")'>✏️ Edit</button>
-    </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts scheduled yet — use Edit Weekly Plan to build one.</p>`}
+    </div>`}).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts scheduled yet — use Edit Weekly Plan to build one.</p>`}
   </div>
   <div class="card csm">
     <div class="ct">📝 Notes</div>
