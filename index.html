@@ -561,7 +561,15 @@ function tc(type){return{training:'#F59E0B',rest:'#3A3A50',checkin:'#8B5CF6',car
 function ini(name=''){return name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}
 function av(i,c,sz=32){return`<div class="av" style="width:${sz}px;height:${sz}px;background:${c};font-size:${sz*.34}px">${i}</div>`}
 function todayISO(){return new Date().toISOString().slice(0,10)}
-function uid(){return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8)}
+// Must be a real UUID: assigned_workouts.id (and checkins.id) are Postgres
+// `uuid` columns. A plain random string here used to get silently rejected
+// by Postgres on insert — and supabase-js does NOT throw a JS error for a
+// failed query, it just returns {error} in the response — so every brand-new
+// workout looked like it saved but never actually reached the database.
+function uid(){
+  if(window.crypto?.randomUUID)return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16)});
+}
 
 /* ─── UNITS ── canonical storage is always metric (kg / metres); convert only for display+input ─── */
 function isImperial(){return PROFILE?.units==='imperial'}
@@ -1022,14 +1030,16 @@ function renderClient(){
   const start=weekStartISO(new Date());
   const days=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(start,i);
-    const wk=MY_WORKOUTS.find(w=>w.scheduled_date===iso);
+    const dayWks=MY_WORKOUTS.filter(w=>w.scheduled_date===iso);
     const d=new Date(iso+'T00:00:00');
-    return{day:lbl,date:d.getDate(),iso,label:wk?wk.name:'Rest Day',type:wk?wk.type:'rest',dur:wk?wk.dur:0,ex:wk?(wk.exercises||[]).length:0,wk};
+    const first=dayWks[0];
+    const label=dayWks.length?(dayWks.length>1?`${first.name} +${dayWks.length-1}`:first.name):'Rest Day';
+    return{day:lbl,date:d.getDate(),iso,label,type:first?first.type:'rest',dayWks};
   });
   if(selDay==null||!days[selDay])selDay=days.findIndex(d=>d.iso===todayISO());
   if(selDay<0)selDay=0;
   const d=days[selDay];
-  const todaysWk=d.wk;
+  const hasCheckin=d.dayWks.some(w=>w.type==='checkin');
 
   const cal=`<div class="card" style="margin-bottom:16px">
     <div class="ctr"><div class="ct" style="margin-bottom:0">${weekOfLabel()}</div></div>
@@ -1039,15 +1049,14 @@ function renderClient(){
       <div class="wday-date" style="${s?`color:${c}`:''}">${w.date}</div>
       <div class="wtag" style="background:${c}20;color:${c};border:1px solid ${c}30">${w.label}</div>
     </div>`}).join('')}</div>
-    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);margin-top:12px">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap;gap:10px">
       <div>
-        <div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--text)">${d.label}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">${d.type==='training'||d.type==='cardio'?`${d.ex} exercises · ~${d.dur} min`:d.type==='rest'?'Recovery — stretch, hydrate, sleep 🛌':'Submit your weekly stats & photos'}</div>
+        <div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--text)">${d.day} · ${d.dayWks.length?`${d.dayWks.length} session${d.dayWks.length>1?'s':''}`:'Rest Day'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${d.dayWks.length?'Tap a session below to log it, or add another':'Nothing scheduled — add a workout below whenever you like'}</div>
       </div>
-      <div style="display:flex;gap:8px">
-        ${todaysWk&&(d.type==='training'||d.type==='cardio')?`<button class="btn-g" style="padding:8px 14px;font-size:12px" onclick='openWB(${JSON.stringify(todaysWk).replace(/'/g,"&apos;")},"client-today")'>✏️ Edit</button>`:''}
-        ${todaysWk&&(d.type==='training'||d.type==='cardio')?`<button class="btn-p" style="width:auto;padding:8px 18px" onclick="startSession('${todaysWk.id}')">Start Session</button>`:''}
-        ${d.type==='checkin'?`<button onclick="setTab('checkin')" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:8px 16px;color:#8B5CF6;font-weight:700;font-size:12px;cursor:pointer">Open Check-In</button>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-g" style="padding:8px 14px;font-size:12px" onclick='openWB(${JSON.stringify({name:"Workout",type:"training",scheduled_date:d.iso,exercises:[]}).replace(/'/g,"&apos;")},"client-today")'>+ Add Workout</button>
+        ${hasCheckin?`<button onclick="setTab('checkin')" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:8px 16px;color:#8B5CF6;font-weight:700;font-size:12px;cursor:pointer">Open Check-In</button>`:''}
       </div>
     </div>
   </div>`;
@@ -1056,22 +1065,28 @@ function renderClient(){
 
   let body='';
   if(ctab==='training'||ctab==='today'){
-    const exList=todaysWk?(todaysWk.exercises||[]):[];
-    const lc=exList.filter(e=>e.done).length;
-    const hp=exList.length?Math.round((lc/exList.length)*100):0;
     body=`
     <div class="g2" style="align-items:start">
       <div class="col">
-        <div class="card">
-          <div class="ctr"><div class="ct" style="margin-bottom:0">Today's Session · ${d.label}</div>${todaysWk?`<button class="iconbtn" onclick='openWB(${JSON.stringify(todaysWk).replace(/'/g,"&apos;")},"client-today")'>✏️ Edit workout</button>`:''}</div>
+        ${d.dayWks.length?d.dayWks.filter(w=>w.type!=='checkin'&&w.type!=='rest').map(wk=>{
+          const exList=wk.exercises||[];
+          const lc=exList.filter(e=>e.done).length;
+          const hp=exList.length?Math.round((lc/exList.length)*100):0;
+          return`<div class="card">
+          <div class="ctr"><div class="ct" style="margin-bottom:0">${wk.name}${wk.status==='done'?' ✅':''}</div>
+            <div style="display:flex;gap:6px">
+              <button class="iconbtn" onclick='openWB(${JSON.stringify(wk).replace(/'/g,"&apos;")},"client-today")'>✏️ Edit</button>
+              <button class="iconbtn danger" onclick="deleteMyWorkout('${wk.id}')">🗑</button>
+            </div>
+          </div>
           ${exList.length?`<div style="margin-bottom:16px"><div class="hrow"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px">SESSION PROGRESS</span><span style="font-size:12px;color:var(--amber);font-weight:700">${hp}%</span></div><div class="htrack"><div class="hfill" style="width:${hp}%"></div></div></div>`:''}
-          ${exList.length?exList.map((ex,i)=>`<div class="exr ${ex.done?'done':''}" onclick="openSL('${todaysWk.id}',${i})">
+          ${exList.length?exList.map((ex,i)=>`<div class="exr ${ex.done?'done':''}" onclick="openSL('${wk.id}',${i})">
             <div class="exnum">${i+1}</div>
             <div style="flex:1"><div class="exname">${ex.n}</div><div class="exmeta">${exMetaLabel(ex)}</div></div>
             <div class="dots">${Array.from({length:ex.s||1}).map(()=>`<div class="dot ${ex.done?'lit':''}"></div>`).join('')}</div>
             ${ex.done?'<span style="color:var(--green);font-size:14px">✓</span>':''}
-          </div>`).join(''):`<p style="font-size:13px;color:var(--muted)">${d.type==='rest'?'Rest day — nothing scheduled. Enjoy it! 🛌':'Nothing scheduled for this day.'}</p>`}
-        </div>
+          </div>`).join(''):`<p style="font-size:13px;color:var(--muted)">No exercises yet — tap ✏️ Edit to add some.</p>`}
+        </div>`}).join(''):`<div class="card" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">🛌</div><div style="font-size:13px">Rest day — nothing scheduled. Enjoy it, or use "+ Add Workout" above if you want to train anyway.</div></div>`}
       </div>
       <div class="col">
         <div class="g2">${[{l:'🔥 Streak',v:'12',u:' days'},{l:'Sessions',v:String(MY_WORKOUTS.filter(w=>w.status==='done').length),u:'/'+MY_WORKOUTS.filter(w=>w.type==='training'||w.type==='cardio').length,d:'On track',up:true},{l:'Units',v:wUnit(),u:''},{l:'Weight',v:'—',u:PROFILE?.units==='imperial'?'lb':'kg'}].map(s=>`<div class="smi"><div class="sv">${s.v}<span class="su">${s.u}</span></div><div class="sl">${s.l}</div>${s.d?`<div class="${s.up?'dup':'ddn'}">${s.d}</div>`:''}</div>`).join('')}</div>
@@ -1097,6 +1112,18 @@ function exMetaLabel(ex){
 
 function selD(i){selDay=i;renderMain()}
 function startSession(wkId){const w=MY_WORKOUTS.find(x=>x.id===wkId);if(w)openSL(wkId,0)}
+
+/* Clients have full control over their own schedule — they can delete a
+   workout the coach assigned OR one they added themselves. */
+async function deleteMyWorkout(wkId){
+  if(!confirm('Remove this workout from your plan?'))return;
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').delete().eq('id',wkId);
+    if(error){toast('Could not remove: '+error.message);return}
+  }
+  MY_WORKOUTS=MY_WORKOUTS.filter(w=>w.id!==wkId);
+  renderMain();toast('Removed ✓');
+}
 
 /* ─── SETTINGS (shared by client + trainer) ─── */
 function settingsPanel(){
@@ -1546,8 +1573,8 @@ async function saveWB(){
     const idx=TEMPLATES.findIndex(t=>t.id===tplObj.id);
     if(idx>=0)TEMPLATES[idx]=tplObj;else TEMPLATES.push(tplObj);
     if(!DEMO){
-      try{await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,created_by:USER.id,is_global:true},{onConflict:'id'})}
-      catch(e){toast('Save failed: '+e.message);return}
+      const{error}=await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,created_by:USER.id,is_global:true},{onConflict:'id'});
+      if(error){toast('Save failed: '+error.message);return}
     }
     toast('Saved to catalog ✓');closeWB();renderMain();return;
   }
@@ -1561,14 +1588,13 @@ async function saveWB(){
     const idx=list.findIndex(w=>w.id===WB.id);
     if(idx>=0)list[idx]={...list[idx],...WB};else list.push({...WB,client_id:clientId,coach_id:PROFILE.id,status:'pending'});
   }else{
-    try{
-      const payload={id:WB.id,client_id:clientId,coach_id:VIEW==='trainer'?PROFILE.id:(PROFILE.coach_id||PROFILE.id),
-        scheduled_date:WB.scheduled_date,name:WB.name,type:WB.type,dur:WB.dur,exercises:WB.exercises,status:WB.status||'pending'};
-      await sb.from('assigned_workouts').upsert(payload,{onConflict:'id'});
-      if(WB_ORIGIN==='coach-day')await loadClientWorkouts(clientId);else await loadMyWorkouts();
-    }catch(e){toast('Save failed: '+e.message);return}
+    const payload={id:WB.id,client_id:clientId,coach_id:VIEW==='trainer'?PROFILE.id:(PROFILE.coach_id||PROFILE.id),
+      scheduled_date:WB.scheduled_date,name:WB.name,type:WB.type,dur:WB.dur,exercises:WB.exercises,status:WB.status||'pending'};
+    const{error}=await sb.from('assigned_workouts').upsert(payload,{onConflict:'id'});
+    if(error){toast('Save failed: '+error.message);return}
+    if(WB_ORIGIN==='coach-day')await loadClientWorkouts(clientId);else await loadMyWorkouts();
   }
-  toast('Workout saved ✓');
+  toast(WB_ORIGIN==='coach-day'?'Saved ✓ — they\'ll see it next time they log in':'Workout saved ✓');
   closeWB();
   renderMain();
 }
@@ -1747,7 +1773,10 @@ function rClientDetail(c){
         <span style="font-size:16px;flex-shrink:0">${done?'✅':w.type==='rest'?'🛌':w.type==='checkin'?'📸':'⏳'}</span>
         <div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">${w.name}</div><div style="font-size:11px;color:${done?'var(--green)':'var(--muted)'}">${w.scheduled_date} · ${(w.exercises||[]).length} exercises${done?' · Completed':' · Pending'}</div></div>
       </div>
-      <button class="iconbtn" onclick='openWB(${JSON.stringify(w).replace(/'/g,"&apos;")},"coach-day","${c.id}")'>✏️ Edit</button>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="iconbtn" onclick='openWB(${JSON.stringify(w).replace(/'/g,"&apos;")},"coach-day","${c.id}")'>✏️ Edit</button>
+        <button class="iconbtn danger" onclick="deleteAssignedWorkout('${w.id}','${c.id}')">🗑</button>
+      </div>
     </div>`}).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts scheduled yet — use Edit Weekly Plan to build one.</p>`}
   </div>
   <div class="card csm">
@@ -1962,25 +1991,39 @@ function pbDragStart(e,tplId){e.dataTransfer.setData('text/plain',tplId);e.dataT
 function pbAllowDrop(e){e.preventDefault();e.dataTransfer.dropEffect='copy'}
 function pbDrop(e,dayIdx){e.preventDefault();const tplId=e.dataTransfer.getData('text/plain');if(tplId)assignTemplateToDay(tplId,dayIdx)}
 
-/* Assigns a catalog template straight onto a specific day — via drag-and-drop
-   (desktop) or tap-to-select-day-then-tap-workout (touch/mobile, where native
-   drag is unreliable). Writes immediately; the ✏️ pencil on each day still
-   opens the full Workout Builder for manual fine-tuning after. */
+/* Assigns a catalog template onto a specific day — via drag-and-drop (desktop)
+   or tap-to-select-day-then-tap-workout (touch/mobile). Always ADDS a new
+   session rather than overwriting whatever's already on that day, so a
+   client can have e.g. a strength session AND a cardio session on the same
+   day. Writes straight to Supabase and surfaces the real error if the save
+   fails (previously a bad id format made new-workout saves fail silently —
+   see uid() — so this now always checks {error} explicitly instead of
+   trusting that "no exception thrown" meant "saved"). */
 async function assignTemplateToDay(tplId,dayIdx){
   const t=TEMPLATES.find(x=>x.id===tplId);if(!t)return;
   const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
   const iso=addDaysISO(pbWeekStart,dayIdx);
   c._workouts=c._workouts||[];
-  const existing=c._workouts.find(w=>w.scheduled_date===iso);
-  const wk={id:existing?existing.id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:iso,name:t.name,type:'training',dur:t.dur,exercises:t.ex.map(tplExToWkEx),status:'pending'};
-  const idx=c._workouts.findIndex(w=>w.scheduled_date===iso);
-  if(idx>=0)c._workouts[idx]=wk;else c._workouts.push(wk);
+  const wk={id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:iso,name:t.name,type:'training',dur:t.dur,exercises:t.ex.map(tplExToWkEx),status:'pending'};
   if(!DEMO){
-    try{await sb.from('assigned_workouts').upsert({id:wk.id,client_id:wk.client_id,coach_id:wk.coach_id,scheduled_date:wk.scheduled_date,name:wk.name,type:wk.type,dur:wk.dur,exercises:wk.exercises,status:wk.status},{onConflict:'id'})}
-    catch(e){toast('Could not assign: '+e.message);return}
+    const{error}=await sb.from('assigned_workouts').insert({id:wk.id,client_id:wk.client_id,coach_id:wk.coach_id,scheduled_date:wk.scheduled_date,name:wk.name,type:wk.type,dur:wk.dur,exercises:wk.exercises,status:wk.status});
+    if(error){toast('Could not save that assignment: '+error.message);return}
   }
-  toast(`"${t.name}" assigned to ${DEMO_DAYS[dayIdx]} ✓`);
+  c._workouts.push(wk);
+  toast(`"${t.name}" saved to ${c.name}'s ${DEMO_DAYS[dayIdx]} ✓ — they'll see it next time they log in`);
   pbSelDay=null;renderPB();
+}
+
+/* Removes one assigned session (coach view). Doesn't touch the catalog. */
+async function deleteAssignedWorkout(wkId,clientId){
+  if(!confirm('Remove this workout from their plan?'))return;
+  const c=CLIENTS.find(x=>x.id===clientId);
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').delete().eq('id',wkId);
+    if(error){toast('Could not remove: '+error.message);return}
+  }
+  if(c)c._workouts=(c._workouts||[]).filter(w=>w.id!==wkId);
+  renderMain();toast('Removed ✓');
 }
 
 function renderPB(){
@@ -1997,17 +2040,22 @@ function renderPB(){
         <button onclick="genPBPlan()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;height:40px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer;white-space:nowrap">Generate</button>
       </div>
     </div>
-    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">1 · Pick a day ${pbSelDay!=null?`<span style="color:var(--amber)">(${DEMO_DAYS[pbSelDay]} selected — tap a workout below to assign it)</span>`:''}</div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">1 · Pick a day ${pbSelDay!=null?`<span style="color:var(--amber)">(${DEMO_DAYS[pbSelDay]} selected — tap a workout below to add it, or drag one)</span>`:''}</div>
     ${DEMO_DAYS.map((day,i)=>{
       const iso=addDaysISO(pbWeekStart,i);
-      const wk=wks.find(w=>w.scheduled_date===iso);
-      const c2=wk?tc(wk.type):'#3A3A50';
+      const dayWks=wks.filter(w=>w.scheduled_date===iso);
       const sel=pbSelDay===i;
-      return`<div class="pdrow" style="${sel?`border-color:var(--amber);background:var(--ag)`:''}" onclick="pbSelectDay(${i})" ondragover="pbAllowDrop(event)" ondrop="pbDrop(event,${i})">
-        <div class="pdlbl">${day}</div>
-        <div style="background:${c2}20;border:1px solid ${c2}30;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:${c2};flex:1">${wk?wk.name:'Rest / unscheduled'}</div>
-        <div style="font-size:11px;color:var(--muted)">${wk?(wk.exercises||[]).length+' ex · ~'+ (wk.dur||0)+'min':(sel?'tap a workout →':'tap to select')}</div>
-        <button class="iconbtn" onclick='event.stopPropagation();openWB(${wk?JSON.stringify(wk).replace(/'/g,"&apos;"):JSON.stringify({name:"Training",type:"training",scheduled_date:iso,exercises:[]}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'>✏️</button>
+      return`<div class="pdrow" style="align-items:flex-start;${sel?`border-color:var(--amber);background:var(--ag)`:''}" onclick="pbSelectDay(${i})" ondragover="pbAllowDrop(event)" ondrop="pbDrop(event,${i})">
+        <div class="pdlbl" style="padding-top:4px">${day}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+          ${dayWks.length?dayWks.map(wk=>{const c2=tc(wk.type);return`<div style="display:flex;align-items:center;gap:8px">
+            <div style="background:${c2}20;border:1px solid ${c2}30;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:${c2};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wk.name}${wk.status==='done'?' ✅':''}</div>
+            <span style="font-size:10px;color:var(--muted);flex-shrink:0">${(wk.exercises||[]).length}ex · ~${wk.dur||0}m</span>
+            <button class="iconbtn" onclick='event.stopPropagation();openWB(${JSON.stringify(wk).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'>✏️</button>
+            <button class="iconbtn danger" onclick="event.stopPropagation();deleteAssignedWorkout('${wk.id}','${pbClientId}').then(renderPB)">🗑</button>
+          </div>`}).join(''):`<div style="font-size:11px;color:var(--muted);padding-top:4px">${sel?'tap a workout below to add one →':'Rest / unscheduled — tap to select'}</div>`}
+        </div>
+        <button class="iconbtn" onclick='event.stopPropagation();openWB(${JSON.stringify({name:"Training",type:"training",scheduled_date:iso,exercises:[]}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")' title="Add a custom workout to this day">+ ✏️</button>
       </div>`;
     }).join('')}
     <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
@@ -2041,7 +2089,12 @@ async function genPBPlan(){
       if(existingIdx>=0)c._workouts[existingIdx]=newWk;else c._workouts.push(newWk);
     });
     if(!DEMO){
-      for(const w of c._workouts){await sb.from('assigned_workouts').upsert({id:w.id,client_id:w.client_id,coach_id:w.coach_id,scheduled_date:w.scheduled_date,name:w.name,type:w.type,dur:w.dur,exercises:w.exercises,status:w.status},{onConflict:'id'})}
+      let failCount=0;
+      for(const w of c._workouts){
+        const{error}=await sb.from('assigned_workouts').upsert({id:w.id,client_id:w.client_id,coach_id:w.coach_id,scheduled_date:w.scheduled_date,name:w.name,type:w.type,dur:w.dur,exercises:w.exercises,status:w.status},{onConflict:'id'});
+        if(error)failCount++;
+      }
+      if(failCount){toast(`Generated, but ${failCount} day(s) failed to save — try again`);renderPB();return}
     }
     renderPB();toast('Week generated ✓ — tap any day to fine-tune it');
   }catch{toast('Could not generate — try again')}
