@@ -1,0 +1,2320 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FORGED — Training System</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0A0A0C;--surface:#13131A;--s2:#1C1C26;--border:#2A2A38;--border2:#3A3A50;
+  --amber:#F59E0B;--ag:rgba(245,158,11,0.12);--ad:#78450A;
+  --green:#22C55E;--gd:#14532D;--red:#EF4444;--rd:#450A0A;
+  --blue:#3B82F6;--purple:#8B5CF6;--text:#EAEAF2;--muted:#70708A;
+  --df:'Barlow Condensed',sans-serif;--bf:'Inter',system-ui,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--bf);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font-family:inherit}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+
+/* SCREENS */
+.screen{display:none;position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;padding:24px;align-items:center;justify-content:center}
+.screen.active{display:flex}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px 36px;width:100%;max-width:420px;background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(245,158,11,.08) 0%,transparent 70%)}
+.logo{font-family:var(--df);font-weight:900;font-size:40px;letter-spacing:6px;color:var(--amber);text-transform:uppercase;text-align:center}
+.logo-sub{font-size:10px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;text-align:center;margin-top:2px;margin-bottom:28px}
+.auth-heading{font-family:var(--df);font-weight:700;font-size:20px;letter-spacing:1px;color:var(--text);margin-bottom:6px}
+.auth-note{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:22px}
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+.field label{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
+.fi{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border .15s;width:100%}
+.fi:focus{border-color:var(--amber)}.fi::placeholder{color:var(--muted)}
+.btn-p{width:100%;background:var(--amber);color:#0A0A0C;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
+.btn-p:hover{background:#FCD34D;transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-g{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
+.btn-g:hover{border-color:var(--border2)}
+.aerr{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#FCA5A5;margin-bottom:12px;display:none}
+.aerr.show{display:block}
+.aok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#86EFAC;margin-bottom:12px;display:none}
+.aok.show{display:block}
+.auth-footer{text-align:center;font-size:12px;color:var(--muted);margin-top:18px}
+.pw-rules{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+.pw-rule{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:500;color:var(--muted);transition:color .15s}
+.pw-rule.ok{color:var(--green)}
+.pw-eye{position:absolute;right:2px;top:0;bottom:0;background:none;border:none;cursor:pointer;font-size:15px;padding:0 12px;color:var(--muted);opacity:.7;transition:opacity .15s}
+.pw-eye:hover{opacity:1}
+.authtabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:22px}
+.authtab{flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
+.authtab.active{background:var(--amber);color:#0A0A0C}
+.seg{display:flex;gap:6px}
+.segb{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s}
+.segb.on{border-color:var(--amber);background:var(--ag);color:var(--amber)}
+
+/* APP */
+#app{display:none;min-height:100vh;flex-direction:column}
+#app.active{display:flex}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;flex-shrink:0}
+.tlogo{font-family:var(--df);font-weight:900;font-size:22px;letter-spacing:4px;color:var(--amber)}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.vpill{display:flex;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
+.vb{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
+.vb.active{background:var(--amber);color:#0A0A0C}
+.av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A0A0C;cursor:pointer;flex-shrink:0}
+.cdot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+
+/* LAYOUT */
+.app-body{display:flex;flex:1;min-height:0}
+.sidebar{width:210px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.sb-sec{padding:14px 0 4px;margin:0 10px}
+.sb-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;padding:0 8px 6px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s;white-space:nowrap}
+.sb-item:hover{background:var(--s2);color:var(--text)}.sb-item.active{background:var(--ag);color:var(--amber);font-weight:600}
+.sb-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0}
+.sb-bot{margin-top:auto;padding:14px;border-top:1px solid var(--border)}
+.main-c{flex:1;overflow-y:auto;min-width:0}
+.content{padding:22px 26px;max-width:1200px}
+
+/* TABS */
+.tabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:18px;flex-wrap:wrap}
+.tab{flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted);white-space:nowrap}
+.tab.active{background:var(--amber);color:#0A0A0C}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.csm{padding:14px}
+.ct{font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.ctr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.col{display:flex;flex-direction:column;gap:14px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+
+/* WEEK CAL */
+.wcal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
+.wday{border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);position:relative}
+.wday:hover{border-color:var(--border2);background:var(--s2)}
+.wday.sel{border-color:var(--amber);background:var(--ag)}
+.wday-lbl{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
+.wday-date{font-family:var(--df);font-size:20px;font-weight:700;color:var(--text);margin-bottom:6px}
+.wday.sel .wday-date{color:var(--amber)}
+.tdot{position:absolute;top:6px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--amber)}
+.wtag{font-size:10px;font-weight:600;border-radius:4px;padding:2px 5px;display:inline-block;letter-spacing:.5px}
+
+/* HEAT */
+.hrow{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.htrack{height:8px;background:var(--s2);border-radius:99px;overflow:hidden}
+.hfill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--amber),#FF6B35);transition:width .5s;box-shadow:0 0 10px rgba(245,158,11,.5)}
+
+/* EXERCISES */
+.exr{display:flex;align-items:center;gap:12px;padding:13px;background:var(--s2);border-radius:10px;cursor:pointer;transition:all .15s;border:1px solid transparent;margin-bottom:8px}
+.exr:hover{border-color:rgba(245,158,11,.3);background:#1E1E2A}
+.exr.done{border-color:rgba(34,197,94,.3);background:#0F1A0F}
+.exnum{font-family:var(--df);font-size:13px;font-weight:700;color:var(--muted);width:20px;text-align:center;flex-shrink:0}
+.exname{font-size:13px;font-weight:600;color:var(--text)}
+.exmeta{font-size:11px;color:var(--muted);margin-top:2px}
+.dots{display:flex;gap:3px;flex-shrink:0}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--border);transition:background .2s}
+.dot.lit{background:var(--amber);box-shadow:0 0 6px rgba(245,158,11,.6)}
+
+/* STATS */
+.smi{text-align:center;padding:14px;background:var(--surface);border:1px solid var(--border);border-radius:10px}
+.sv{font-family:var(--df);font-size:28px;font-weight:900;color:var(--text);line-height:1}
+.su{font-size:13px;color:var(--muted);font-family:var(--bf)}
+.sl{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+.dup{font-size:11px;font-weight:600;color:var(--green);margin-top:3px}
+.ddn{font-size:11px;font-weight:600;color:var(--red);margin-top:3px}
+
+/* AI */
+.abox{background:linear-gradient(135deg,#150F00,#0A0A0C);border:1px solid rgba(245,158,11,.25);border-radius:10px;padding:14px 16px;margin-top:12px}
+.ablbl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ad);text-transform:uppercase;margin-bottom:6px}
+.abtxt{font-size:13px;color:#FCD34D;line-height:1.6}
+.aiwrap{display:flex;flex-direction:column;height:460px}
+.aimsg{max-width:82%;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.6}
+.aimsg.user{align-self:flex-end;background:var(--ag);border:1px solid rgba(245,158,11,.3);color:var(--text)}
+.aimsg.bot{align-self:flex-start;background:var(--s2);border:1px solid var(--border);color:var(--text)}
+.aiml{font-size:10px;font-weight:700;letter-spacing:1px;color:var(--amber);text-transform:uppercase;margin-bottom:5px}
+.aiq{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.aic{background:var(--s2);border:1px solid var(--border);border-radius:99px;padding:5px 12px;font-size:11px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s}
+.aic:hover{border-color:rgba(245,158,11,.5);color:var(--amber);background:var(--ag)}
+.airow{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border);margin-top:8px}
+.ainp{flex:1;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;color:var(--text);font-size:13px;outline:none;resize:none;transition:border .15s}
+.ainp:focus{border-color:var(--amber)}
+.aisend{background:var(--amber);border:none;border-radius:8px;padding:0 16px;font-weight:700;font-size:13px;color:#0A0A0C;cursor:pointer;white-space:nowrap}
+
+/* FOOD */
+.mgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.mc{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center}
+.mv{font-family:var(--df);font-size:22px;font-weight:700;color:var(--text)}
+.ml2{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:2px}
+.mbar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.mbf{height:100%;border-radius:2px;transition:width .5s}
+.mealc{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:8px}
+.mfpb{display:flex;align-items:center;gap:12px;padding:13px;background:linear-gradient(135deg,#0D1B2E,#0A0A0C);border:1px solid #1E3A5F;border-radius:10px;margin-bottom:14px}
+.mfpl{width:36px;height:36px;background:#2B6CB0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;flex-shrink:0}
+
+/* CHECKIN */
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.pslot{position:relative;overflow:hidden;aspect-ratio:3/4;background:var(--s2);border:2px dashed var(--border);border-radius:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;color:var(--muted);font-size:11px;font-weight:600;gap:8px}
+.pslot:hover,.pslot.filled{border-color:rgba(245,158,11,.5);background:var(--ag);color:var(--amber)}
+.mrow{display:flex;gap:6px}
+.mb{flex:1;padding:10px 4px;background:var(--s2);border:1px solid var(--border);border-radius:8px;cursor:pointer;text-align:center;font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;transition:all .15s}
+.mb:hover,.mb.sel{border-color:var(--amber);background:var(--ag);color:var(--amber)}
+.me{font-size:20px;display:block;margin-bottom:4px}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(6px);z-index:300;display:none;align-items:center;justify-content:center;padding:16px}
+.overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:560px;max-height:90vh;padding:0;display:flex;flex-direction:column;overflow:hidden}
+.modal-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:22px 22px 0 26px;flex-shrink:0}
+.modal-bd{padding:14px 26px 4px;overflow-y:auto;flex:1;min-height:0}
+.modal-x{background:var(--s2);border:1px solid var(--border);color:var(--muted);width:32px;height:32px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0}
+.modal-x:hover{background:var(--red);border-color:var(--red);color:#fff}
+.mtitle{font-family:var(--df);font-weight:700;font-size:22px;letter-spacing:2px;text-transform:uppercase;color:var(--text);margin-bottom:4px}
+.msub{font-size:12px;color:var(--muted);margin-bottom:20px}
+.mact{display:flex;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--border);flex-shrink:0}
+.sr{display:flex;align-items:center;gap:10px;padding:11px;background:var(--s2);border-radius:8px;border:1px solid var(--border);margin-bottom:8px;transition:border .15s}
+.sr.aset{border-color:rgba(245,158,11,.35)}.sr.dset{border-color:rgba(34,197,94,.3);background:#0F1A0F}
+.slbl{font-family:var(--df);font-size:12px;font-weight:700;color:var(--muted);width:38px}
+.ni{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;width:68px;color:var(--text);font-size:15px;font-weight:600;font-family:var(--df);text-align:center;outline:none;transition:border .15s}
+.ni:focus{border-color:var(--amber)}
+.ni.wd{width:56px}
+.sx{color:var(--muted);font-size:12px}
+.lb{padding:7px 11px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;transition:all .15s}
+.lb.idle{background:var(--border);color:var(--muted)}.lb.idle:hover{background:var(--amber);color:#0A0A0C}
+.lb.conf{background:rgba(34,197,94,.2);color:var(--green);cursor:default}
+
+/* CLIENTS */
+.cr{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:8px}
+.cr:hover{border-color:rgba(245,158,11,.3);background:#1C1C2A}.cr.sel{border-color:rgba(245,158,11,.5);background:var(--ag)}
+.cname{font-size:13px;font-weight:600;color:var(--text)}
+.cplan{font-size:11px;color:var(--muted);margin-top:1px}
+.cw{min-width:90px}.cwl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
+.ctrack{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.cfill{height:100%;border-radius:3px;transition:width .4s}
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.bok{background:var(--gd);color:var(--green)}.bwn{background:#451A03;color:#FB923C}.bbd{background:var(--rd);color:var(--red)}
+.sch{font-size:12px;font-weight:600;color:var(--amber);min-width:44px;text-align:right}
+
+/* CATALOG */
+.catpl{background:var(--s2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.catph{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;transition:background .15s}
+.catph:hover{background:#252535}
+.catpn{font-size:14px;font-weight:600;color:var(--text)}
+.catpm{font-size:11px;color:var(--muted);margin-top:2px}
+.catex{display:flex;flex-direction:column;gap:6px;padding:0 16px 14px}
+.cex{display:flex;align-items:center;gap:10px;padding:9px 11px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px}
+.cexn{flex:1;font-weight:500;color:var(--text)}.cexd{color:var(--muted)}
+
+/* UPLOAD */
+.uz{border:2px dashed var(--border);border-radius:12px;padding:36px;text-align:center;cursor:pointer;transition:all .2s}
+.uz:hover,.uz.drag{border-color:var(--amber);background:var(--ag)}
+.uprog{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:16px;margin-top:12px;display:none}
+.uprog.show{display:block}
+.pbar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:8px}
+.pfill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--amber),#FF6B35);transition:width .3s}
+
+/* PLAN BUILDER */
+.pdrow{display:flex;align-items:center;gap:10px;padding:11px;background:var(--s2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:border .15s}
+.pdrow:hover{border-color:var(--border2)}
+.pdlbl{font-family:var(--df);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);width:34px;flex-shrink:0}
+
+/* WORKOUT BUILDER */
+.wbrow{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px}
+.wbrow.grp{border-left:3px solid var(--amber)}
+.wbhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.wbname{font-size:13px;font-weight:600;color:var(--text)}
+.wbtag{font-size:10px;color:var(--muted);margin-top:2px}
+.wbfields{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.wbfields .fi{width:auto}
+.wbfld{display:flex;flex-direction:column;gap:3px}
+.wbfld label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.wbactions{display:flex;gap:6px;flex-shrink:0}
+.iconbtn{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:11px;cursor:pointer;color:var(--muted);transition:all .15s;white-space:nowrap}
+.iconbtn:hover{border-color:var(--amber);color:var(--amber)}
+.iconbtn.danger:hover{border-color:var(--red);color:var(--red)}
+.exsearch-wrap{position:relative}
+.exsearch-results{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:10px;max-height:260px;overflow-y:auto;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.exsr-item{padding:10px 14px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;gap:10px}
+.exsr-item:last-child{border-bottom:none}
+.exsr-item:hover{background:var(--s2)}
+.exsr-tag{font-size:10px;color:var(--muted);white-space:nowrap}
+.swap-reason{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+
+/* SETTINGS */
+.unit-toggle{display:flex;background:var(--s2);border:1px solid var(--border);border-radius:99px;padding:3px;width:fit-content}
+.unit-opt{padding:7px 18px;border-radius:99px;border:none;background:transparent;color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.unit-opt.on{background:var(--amber);color:#0A0A0C}
+.invite-chip{display:inline-flex;align-items:center;gap:8px;background:var(--ag);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:8px 14px;font-family:var(--df);font-size:18px;font-weight:700;letter-spacing:3px;color:var(--amber)}
+
+/* PROFILE MENU */
+.pmenu{position:absolute;top:52px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:6px;min-width:180px;z-index:100;display:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.pmenu.open{display:block}
+.pmi{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:500;color:var(--muted);transition:all .15s}
+.pmi:hover{background:var(--s2);color:var(--text)}.pmi.danger:hover{color:var(--red)}
+.pdiv{height:1px;background:var(--border);margin:4px 0}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:#1C1C26;border:1px solid var(--border);border-radius:10px;padding:12px 18px;font-size:13px;font-weight:500;color:var(--text);z-index:500;transform:translateY(80px);opacity:0;transition:all .25s;pointer-events:none;max-width:320px}
+#toast.show{transform:translateY(0);opacity:1}
+
+/* ── mobile hardening: prevent any row from forcing horizontal/off-page
+   scroll — everything below either wraps or truncates instead of overflowing ── */
+.ctr,.pdrow,.wbhead,.catph,.cr{flex-wrap:wrap}
+.cname,.cplan,.wbname,.wbtag,.catpn,.catpm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html,body{overflow-x:hidden;max-width:100vw}
+.content{max-width:100%}
+@media(max-width:800px){.sidebar{display:none}.g2,.g3,.g4,.mgrid{grid-template-columns:1fr 1fr}.wcal{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:600px){
+  .topbar{padding:0 12px}
+  .tlogo{font-size:18px;letter-spacing:2px}
+  .topbar-right{gap:6px}
+  .vpill{padding:2px}.vb{padding:5px 9px;font-size:10px}
+  .content{padding:14px}
+  .modal-hd{padding:16px 14px 0}
+  .modal-bd{padding:10px 14px 4px}
+  .mact{padding:12px 14px 16px}
+  .cr{gap:8px}
+  .cw{min-width:70px}
+  .pdrow{gap:6px}
+}
+@media(max-width:500px){.g2,.g3,.g4,.mgrid{grid-template-columns:1fr}.wcal{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+
+<!-- SETUP -->
+<div class="screen" id="setupScreen">
+  <div class="auth-card" style="max-width:460px">
+    <div class="logo">FORGED</div>
+    <div class="logo-sub">Training System — Setup</div>
+    <p class="auth-note">Connect your Supabase database to get started. Only needed once per device.</p>
+    <div class="field"><label>Supabase Project URL</label><input class="fi" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
+    <div class="field"><label>Anon / Public Key</label><input class="fi" id="cfgKey" type="text" placeholder="eyJ..."></div>
+    <div class="aerr" id="cfgError"></div>
+    <button class="btn-p" onclick="connectSupabase()" id="connectBtn">Connect</button>
+    <div style="margin-top:14px;padding:12px;background:var(--s2);border-radius:8px;font-size:12px;color:var(--muted)">
+      <strong style="color:var(--text)">First time?</strong> After connecting, run <code style="color:var(--amber)">forged-schema.sql</code> then <code style="color:var(--amber)">forged-seed.sql</code> in the Supabase SQL Editor.
+    </div>
+    <button class="btn-g" style="width:100%;margin-top:10px" onclick="startDemo()">Try demo mode</button>
+    <div class="auth-footer"><a href="https://supabase.com" target="_blank" style="color:var(--amber)">Create a free Supabase project →</a></div>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div class="screen" id="authScreen">
+  <div class="auth-card" id="loginCard">
+    <div class="logo">FORGED</div>
+    <div class="logo-sub">Training System</div>
+    <div class="authtabs">
+      <button class="authtab active" id="atLogin" onclick="showAuthTab('login')">Sign In</button>
+      <button class="authtab" id="atSignup" onclick="showAuthTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-heading">Welcome back</div>
+    <p class="auth-note">Sign in with your email and password.</p>
+    <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+    <div class="field"><label>Password</label>
+      <div style="position:relative"><input class="fi" id="loginPassword" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('loginPassword',this)">👁️</button></div>
+    </div>
+    <div class="aerr" id="loginError"></div>
+    <button class="btn-p" onclick="doLogin()" id="loginBtn">Sign in →</button>
+    <div class="auth-footer">New here? Use the Sign Up tab above.</div>
+    <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
+  </div>
+
+  <div class="auth-card" id="signupCard" style="display:none">
+    <div class="logo">FORGED</div>
+    <div class="logo-sub">Training System</div>
+    <div class="authtabs">
+      <button class="authtab" onclick="showAuthTab('login')">Sign In</button>
+      <button class="authtab active" onclick="showAuthTab('signup')">Sign Up</button>
+    </div>
+    <div class="auth-heading">Create your account</div>
+    <p class="auth-note" id="suNote">Enter your details to get started as a client.</p>
+    <div class="field"><label>Full name</label><input class="fi" id="suName" placeholder="Your name"></div>
+    <div class="field"><label>Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com"></div>
+    <div class="field"><label>Password</label>
+      <div style="position:relative"><input class="fi" id="suPassword" type="password" placeholder="At least 8 characters" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword',this)">👁️</button></div>
+    </div>
+    <div class="field"><label>Confirm password</label>
+      <div style="position:relative"><input class="fi" id="suPassword2" type="password" placeholder="Repeat your password" style="padding-right:42px" onkeydown="if(event.key==='Enter')doSignup()"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword2',this)">👁️</button></div>
+    </div>
+    <div id="suRoleBlock" style="display:none">
+      <div class="field"><label>I am a…</label>
+        <div class="seg">
+          <button class="segb on" id="suRoleClient" onclick="setSuRole('client')">Client</button>
+          <button class="segb" id="suRoleCoach" onclick="setSuRole('coach')">Coach</button>
+        </div>
+      </div>
+    </div>
+    <div class="field" id="suCodeField" style="display:none"><label id="suCodeLbl">Coach setup code</label><input class="fi" id="suCode" placeholder="Given to you by the app owner" style="text-transform:uppercase"></div>
+    <div class="aerr" id="suError"></div>
+    <div class="aok" id="suOk"></div>
+    <button class="btn-p" onclick="doSignup()" id="suBtn">Create account →</button>
+    <div class="auth-footer"><a href="#" id="suCoachToggle" onclick="toggleCoachSignup(event)" style="color:var(--muted);text-decoration:underline;cursor:pointer">Are you a coach?</a></div>
+    <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
+  </div>
+
+  <div class="auth-card" id="setPwCard" style="display:none">
+    <div class="logo">FORGED</div><div class="logo-sub">Training System</div>
+    <div class="auth-heading">Create your password</div>
+    <p class="auth-note" id="setPwWelcome">Welcome! Choose a secure password to get started.</p>
+    <div class="field"><label>New password</label>
+      <div style="position:relative"><input class="fi" id="newPw" type="password" placeholder="Choose a strong password" oninput="checkPwRules()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('newPw',this)">👁️</button></div>
+    </div>
+    <div class="pw-rules" id="pwRules">
+      <div class="pw-rule" id="r-len">○ At least 8 characters</div>
+      <div class="pw-rule" id="r-up">○ One uppercase letter</div>
+      <div class="pw-rule" id="r-lo">○ One lowercase letter</div>
+      <div class="pw-rule" id="r-num">○ One number</div>
+    </div>
+    <div class="field"><label>Confirm password</label>
+      <div style="position:relative"><input class="fi" id="confPw" type="password" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')doSetPw()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('confPw',this)">👁️</button></div>
+    </div>
+    <div class="aerr" id="setPwErr"></div>
+    <button class="btn-p" onclick="doSetPw()" id="setPwBtn" disabled>Set password & continue →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="tlogo">FORGED</div>
+    <div class="topbar-right">
+      <div class="cdot" id="cdot"></div>
+      <div class="vpill" id="vpill" style="display:none">
+        <button class="vb active" id="cvb" onclick="switchView('client')">Client</button>
+        <button class="vb" id="tvb" onclick="switchView('trainer')">Trainer</button>
+      </div>
+      <div style="position:relative">
+        <div class="av" id="tav" style="width:32px;height:32px;font-size:12px" onclick="togglePM()"></div>
+        <div class="pmenu" id="pmenu">
+          <div class="pmi"><span>👤</span><span id="mue"></span></div>
+          <div class="pdiv"></div>
+          <div class="pmi" onclick="setTab('settings');closePM()"><span>⚙️</span>Settings</div>
+          <div class="pmi danger" onclick="doSO()"><span>🚪</span>Sign out</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="app-body">
+    <div class="sidebar" id="sidebar">
+      <div class="sb-sec">
+        <div class="sb-lbl" id="sblbl">My Training</div>
+        <div id="sbnav"></div>
+      </div>
+      <div class="sb-bot">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div class="av" id="sbav" style="width:32px;height:32px;font-size:11px"></div>
+          <div><div style="font-size:12px;font-weight:600;color:var(--text)" id="sbun"></div><div style="font-size:11px;color:var(--muted)" id="sbur"></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="main-c"><div class="content" id="mc"></div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- SET LOGGER MODAL -->
+<div class="overlay" id="slOv" onmousedown="closeOverlayOnBackdrop(event,closeSL)">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div><div class="mtitle" id="slName" style="margin-bottom:0"></div><div class="msub" id="slMeta" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeSL()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div id="slLast" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
+      <button class="iconbtn" onclick="openSwapFromLogger()" style="margin-bottom:12px">🔁 Swap (AI)</button>
+      <div id="slSets"></div>
+      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
+    </div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeSL()">Close</button>
+      <button class="btn-p" id="slDone" onclick="closeSL(true)" style="flex:1"></button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKOUT BUILDER MODAL (used by client's own day, coach editing a client's day,
+     AND coach editing/creating a catalog plan template — see setWBMode()) -->
+<div class="overlay" id="wbOv" onmousedown="closeOverlayOnBackdrop(event,closeWB)">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0" id="wbTitle">Edit Workout</div><div class="msub" id="wbSub" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeWB()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="g3" style="margin-bottom:14px">
+        <div class="field" style="margin-bottom:0"><label>Name</label><input class="fi" id="wbNameInp" oninput="WB.name=this.value"></div>
+        <div class="field" style="margin-bottom:0" id="wbTypeWrap"><label>Type</label>
+          <select class="fi" id="wbTypeInp" onchange="WB.type=this.value">
+            <option value="training">Training</option><option value="cardio">Cardio</option><option value="checkin">Check-In</option><option value="rest">Rest</option>
+          </select>
+        </div>
+        <div class="field" style="margin-bottom:0;display:none" id="wbPlanWrap"><label>Plan / Category</label><input class="fi" id="wbPlanInp" oninput="WB.plan=this.value" placeholder="e.g. Foundations"></div>
+        <div class="field" style="margin-bottom:0" id="wbDateWrap"><label>Date</label><input class="fi" type="date" id="wbDateInp" onchange="WB.scheduled_date=this.value"></div>
+        <div class="field" style="margin-bottom:0;display:none" id="wbDurWrap"><label>Duration (min)</label><input class="fi" type="number" id="wbDurInp" placeholder="e.g. 45"></div>
+      </div>
+      <div id="wbList"></div>
+      <div class="exsearch-wrap" style="margin-top:10px">
+        <input class="fi" id="wbSearch" placeholder="+ Add exercise — type a name (e.g. squat, row, sled)…" oninput="renderExSearch(this.value)" onfocus="renderExSearch(this.value)">
+        <div class="exsearch-results" id="wbSearchRes" style="display:none"></div>
+      </div>
+    </div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeWB()">Cancel</button>
+      <button class="btn-p" id="wbSaveBtn" onclick="saveWB()" style="flex:1">Save Workout</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI SWAP MODAL -->
+<div class="overlay" id="swapOv" onmousedown="closeOverlayOnBackdrop(event,closeSwap)">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">🔁 AI Swap</div><div class="msub" id="swapSub" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeSwap()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="field"><label>Why does this need to change?</label>
+        <div class="swap-reason" id="swapReasons">
+          <button class="segb" data-r="Injury" onclick="setSwapReason(this)">🩹 Injury</button>
+          <button class="segb" data-r="Busy gym / no equipment" onclick="setSwapReason(this)">🏋️ Busy gym / no equipment</button>
+          <button class="segb" data-r="Doesn't like it" onclick="setSwapReason(this)">😕 Don't like it</button>
+          <button class="segb" data-r="Other" onclick="setSwapReason(this)">✏️ Other</button>
+        </div>
+      </div>
+      <div class="field"><label>More detail (optional)</label><textarea class="fi" id="swapNote" rows="2" placeholder="e.g. left shoulder impingement, no barbell available…"></textarea></div>
+      <div id="swapResult"></div>
+    </div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeSwap()">Cancel</button>
+      <button class="btn-p" onclick="runAiSwap()" style="flex:1" id="swapGoBtn">Find a replacement →</button>
+    </div>
+  </div>
+</div>
+
+<!-- PLAN BUILDER MODAL -->
+<div class="overlay" id="pbOv" onmousedown="closeOverlayOnBackdrop(event,closePB)">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">Weekly Plan</div><div class="msub" id="pbCl" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closePB()">✕</button>
+    </div>
+    <div class="modal-bd"><div id="pbCont"></div></div>
+    <div class="mact">
+      <button class="btn-g" onclick="closePB()" style="flex:1">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHECK-IN SETUP MODAL -->
+<div class="overlay" id="ciOv" onmousedown="closeOverlayOnBackdrop(event,closeCI)">
+  <div class="modal">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">Add Check-In</div><div class="msub" id="ciCl" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeCI()">✕</button>
+    </div>
+    <div class="modal-bd"><div id="ciCont"></div></div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeCI()">Cancel</button>
+      <button class="btn-p" onclick="saveCI();closeCI()" style="flex:1">Add to Plan</button>
+    </div>
+  </div>
+</div>
+
+<!-- WORKOUT COMPLETE / CELEBRATION MODAL -->
+<div class="overlay" id="winOv" onmousedown="closeOverlayOnBackdrop(event,closeWin)">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd">
+      <div></div>
+      <button class="modal-x" onclick="closeWin()">✕</button>
+    </div>
+    <div class="modal-bd" style="text-align:center">
+      <div style="font-size:52px;margin-bottom:6px">🏆</div>
+      <div class="mtitle" style="text-align:center">WORKOUT COMPLETE</div>
+      <div style="text-align:left;margin-top:10px" id="winBody"></div>
+    </div>
+    <div class="mact">
+      <button class="btn-p" onclick="closeWin()" style="flex:1">Nice! 🔥</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── CONFIG ─── */
+const SUPABASE_URL='https://fkvcmodmotndprlbcvea.supabase.co', SUPABASE_ANON_KEY='sb_publishable_W06-DX8SYlgDWo54mzrAMQ_hr3SnioM', CFG_KEY='forged-cfg-v1';
+// Change this to gate who can self-register as a coach. Clients instead use a
+// per-coach invite code (auto-generated, shown in Settings once signed in).
+const COACH_SETUP_CODE='FORGE-COACH-2026';
+let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
+let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
+let aiLoad=false,selDay=2,ctab='training',ttab='clients';
+let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
+let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
+/* EX_HISTORY[exerciseName] = {last:{...most recent logged set...}, best:{weight_kg,reps,distance_m,time_sec}}
+   built once from workout_logs so "last time you did this" and PB checks
+   don't need a network round-trip every time a set is logged. */
+let EX_HISTORY={},PB_BY_WK={};
+const MILESTONES=[1,10,25,50,100,250,500,700,1000];
+function isMilestone(n){return MILESTONES.includes(n)||(n>1000&&n%500===0)}
+let catExp={},uploadedPDFs=[],pbPlan=null,pbClientId=null,pbWeekStart=null;
+let EXLIB=[],TEMPLATES=[],CLIENTS=[],MY_WORKOUTS=[],MY_PLANS=[];
+let WB=null,WB_ORIGIN=null; // current workout builder state + where to return focus ('client-today'|'coach-day')
+let SWAP_CTX=null,SWAP_REASON='',SWAP_CHOICE=null;
+let suRole='client';
+
+/* ─── DEMO DATA (used only in Try Demo mode, or as a fallback if a live
+   fetch fails) — a curated slice of the exercise library / workout
+   templates extracted from the uploaded PDFs, plus two sample clients. ─── */
+const EXLIB_DEMO=[{"id":"ex1","name":"Running","cat":"cardio","musc":"Cardio","equip":"Body weight","track":"distance_time"},{"id":"ex2","name":"Ski Erg","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex3","name":"Cycling","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex4","name":"Rowing Machine","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex5","name":"Wall Balls","cat":"strength","musc":"Full Body","equip":"Medicine Ball","track":"reps_only"},{"id":"ex6","name":"Sled Push","cat":"strength","musc":"Full Body","equip":"Sled","track":"level_distance"},{"id":"ex7","name":"Assault Bike","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex8","name":"Pull Apart (TB)","cat":"strength","musc":"Shoulders","equip":"Dumbbell","track":"reps_weight"},{"id":"ex9","name":"Dislocate (TB)","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex10","name":"Push Up (TB)","cat":"strength","musc":"Chest","equip":"Barbell","track":"reps_weight"},{"id":"ex11","name":"Hip Abduction - In to Out (TB)","cat":"strength","musc":"Glutes/Hamstrings","equip":"Barbell","track":"reps_weight"},{"id":"ex12","name":"Bird Dog","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex13","name":"Sled Pull","cat":"strength","musc":"Full Body","equip":"Sled","track":"level_distance"},{"id":"ex14","name":"Goblet Squat (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex15","name":"Ab Crunch (TB)","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex16","name":"Dumbbell Walking Lunge","cat":"strength","musc":"Quads","equip":"Dumbbell","track":"reps_weight"},{"id":"ex17","name":"Side Plank (TB)","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex18","name":"Lying Leg Curl (TB)","cat":"strength","musc":"Legs","equip":"Machine","track":"reps_weight"},{"id":"ex19","name":"Leg Extension (TB)","cat":"strength","musc":"Legs","equip":"Machine","track":"reps_weight"},{"id":"ex20","name":"90/90 Hip Stretch","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex21","name":"Dynamic Frog Stretch","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex22","name":"Barbell Walking Lunge","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex23","name":"Downward Dog","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex24","name":"Dirty Dog","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex25","name":"Kettlebell Calf Stretch","cat":"mobility","musc":"Mobility","equip":"Kettlebell","track":"time_only"},{"id":"ex26","name":"Lying Piriformis Stretch","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex27","name":"Static Pigeon Stretch","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex28","name":"Cobra","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex29","name":"Seated Toe Touch","cat":"mobility","musc":"Mobility","equip":"Body weight","track":"time_only"},{"id":"ex30","name":"Concept2 BikeErg","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex31","name":"Farmer Walk","cat":"strength","musc":"Full Body","equip":"Dumbbell","track":"distance_time"},{"id":"ex32","name":"45 Degree Leg Press (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex33","name":"Cable Seated Row (TB)","cat":"strength","musc":"Back","equip":"Cable","track":"reps_weight"},{"id":"ex34","name":"Rear Foot Split Squat (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex35","name":"Burpee Broad Jump","cat":"strength","musc":"Full Body","equip":"Body weight","track":"reps_only"},{"id":"ex36","name":"Barbell Bent Over Row (TB)","cat":"strength","musc":"Back","equip":"Barbell","track":"reps_weight"},{"id":"ex37","name":"DB Bench Press (TB)","cat":"strength","musc":"Chest","equip":"Bench","track":"reps_weight"},{"id":"ex38","name":"Cable Ab Rotation (TB)","cat":"core","musc":"Core","equip":"Cable","track":"reps_weight"},{"id":"ex39","name":"Rowing","cat":"cardio","musc":"Cardio","equip":"Machine","track":"distance_time"},{"id":"ex40","name":"Barbell Back Squat (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex41","name":"Lat Pull Down (TB)","cat":"strength","musc":"Back","equip":"Cable","track":"reps_weight"},{"id":"ex42","name":"Pull Up (TB)","cat":"strength","musc":"Back","equip":"Cable","track":"reps_weight"},{"id":"ex43","name":"Glute Bridge (TB)","cat":"strength","musc":"Glutes/Hamstrings","equip":"Barbell","track":"reps_weight"},{"id":"ex44","name":"Heel Elevated Goblet Squat (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex45","name":"Hip Adduction - out to in (TB)","cat":"strength","musc":"Glutes/Hamstrings","equip":"Barbell","track":"reps_weight"},{"id":"ex46","name":"DB Lateral Raise (TB)","cat":"strength","musc":"Shoulders","equip":"Dumbbell","track":"reps_weight"},{"id":"ex47","name":"Burpees to Plate","cat":"strength","musc":"Full Body","equip":"Body weight","track":"reps_only"},{"id":"ex48","name":"DB Shoulder Press (TB)","cat":"strength","musc":"Shoulders","equip":"Dumbbell","track":"reps_weight"},{"id":"ex49","name":"Rope Tricep Pushdown (TB)","cat":"strength","musc":"Triceps","equip":"Rope","track":"reps_weight"},{"id":"ex50","name":"DB Bent Over Row (TB)","cat":"strength","musc":"Back","equip":"Dumbbell","track":"reps_weight"},{"id":"ex52","name":"Band Assisted Pull Up (TB)","cat":"strength","musc":"Back","equip":"Band","track":"reps_weight"},{"id":"ex53","name":"Machine Seated Leg Extension","cat":"strength","musc":"Legs","equip":"Machine","track":"reps_weight"},{"id":"ex54","name":"Walkouts","cat":"strength","musc":"Full Body","equip":"Body weight","track":"reps_only"},{"id":"ex55","name":"Elbow Plank","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex56","name":"Front Foot Split Squat (TB)","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex57","name":"Tuck Hollow Body Hold","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex58","name":"Dumbbell Side Bend","cat":"core","musc":"Core","equip":"Dumbbell","track":"reps_weight"},{"id":"ex59","name":"Barbell Bench Press (TB)","cat":"strength","musc":"Chest","equip":"Bench","track":"reps_weight"},{"id":"ex60","name":"Dumbbell RDL (TB)","cat":"strength","musc":"Glutes/Hamstrings","equip":"Dumbbell","track":"reps_weight"},{"id":"ex61","name":"SuperBand Pallof Press","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex62","name":"Box Jump","cat":"strength","musc":"Legs","equip":"Box","track":"reps_only"},{"id":"ex63","name":"Hanging Knee Raise","cat":"core","musc":"Core","equip":"Body weight","track":"reps_weight"},{"id":"ex64","name":"Calf Raise (TB)","cat":"strength","musc":"Legs","equip":"Machine","track":"reps_weight"},{"id":"ex65","name":"Burpee","cat":"strength","musc":"Full Body","equip":"Body weight","track":"reps_only"},{"id":"ex68","name":"Trap Bar Deadlift","cat":"strength","musc":"Glutes/Hamstrings","equip":"Trap Bar","track":"reps_weight"},{"id":"ex71","name":"Dumbbell Standing Shoulder Press","cat":"strength","musc":"Shoulders","equip":"Dumbbell","track":"reps_weight"},{"id":"ex72","name":"Seated Leg Press","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex73","name":"Dumbbell Incline Bicep Curl","cat":"strength","musc":"Biceps","equip":"Dumbbell","track":"reps_weight"},{"id":"ex76","name":"Barbell RDL (TB)","cat":"strength","musc":"Glutes/Hamstrings","equip":"Barbell","track":"reps_weight"},{"id":"ex78","name":"DB Bicep Curl (TB)","cat":"strength","musc":"Biceps","equip":"Dumbbell","track":"reps_weight"},{"id":"ex84","name":"Body Weight Squat","cat":"strength","musc":"Quads","equip":"Barbell","track":"reps_weight"},{"id":"ex85","name":"Squat Jump","cat":"strength","musc":"Legs","equip":"Body weight","track":"reps_only"},{"id":"ex86","name":"Dumbbell Thruster","cat":"strength","musc":"Full Body","equip":"Dumbbell","track":"reps_weight"},{"id":"ex87","name":"Smith Machine Back Squat","cat":"strength","musc":"Quads","equip":"Machine","track":"reps_weight"},{"id":"ex88","name":"Neutral Grip Lat Pull Down (TB)","cat":"strength","musc":"Back","equip":"Cable","track":"reps_weight"},{"id":"ex89","name":"Barbell Shoulder Press (TB)","cat":"strength","musc":"Shoulders","equip":"Barbell","track":"reps_weight"}];
+const TPL_DEMO=[{"id":"tpl228","name":"60 min AMRAP","plan":"Bilbao Prep","dur":27,"equip":"Body weight · Dumbbell · Machine","ex":[{"ex_id":"ex2","n":"Ski Erg","s":3,"r":"500m","rest":"60s","grp":1},{"ex_id":"ex13","n":"Sled Pull","s":3,"r":"25m","rest":"60s","grp":1},{"ex_id":"ex47","n":"Burpees to Plate","s":3,"r":"20","rest":"60s","grp":1},{"ex_id":"ex31","n":"Farmer Walk","s":3,"r":"50m @ comp weight","rest":"60s","grp":1},{"ex_id":"ex5","n":"Wall Balls","s":3,"r":"25","rest":"60s","grp":1}]},{"id":"tpl230","name":"Easy Run","plan":"Bilbao Prep","dur":31,"equip":"Body weight · Machine","ex":[{"ex_id":"ex1","n":"Running","s":1,"r":"30 min, Zone 2","rest":"","grp":null}]},{"id":"tpl231","name":"Power 1","plan":"Bilbao Prep","dur":53,"equip":"Barbell · Body weight · Machine","ex":[{"ex_id":"ex54","n":"Walkouts","s":2,"r":"10","rest":"","grp":1},{"ex_id":"ex10","n":"Push Up (TB)","s":2,"r":"10","rest":"","grp":1},{"ex_id":"ex11","n":"Hip Abduction - In to Out (TB)","s":3,"r":"15","rest":"60s","grp":2},{"ex_id":"ex44","n":"Heel Elevated Goblet Squat (TB)","s":3,"r":"10","rest":"60s","grp":2},{"ex_id":"ex76","n":"Barbell RDL (TB)","s":4,"r":"6","rest":"","grp":3},{"ex_id":"ex62","n":"Box Jump","s":3,"r":"3","rest":"60s","grp":4},{"ex_id":"ex65","n":"Burpee","s":4,"r":"10 (EXPLODE)","rest":"","grp":5}]},{"id":"tpl232","name":"Power 2","plan":"Bilbao Prep","dur":56,"equip":"Body weight","ex":[{"ex_id":"ex4","n":"Rowing Machine","s":3,"r":"250m","rest":"30s","grp":null},{"ex_id":"ex45","n":"Hip Adduction - out to in (TB)","s":3,"r":"15","rest":"45s","grp":1},{"ex_id":"ex34","n":"Rear Foot Split Squat (TB)","s":3,"r":"6 each leg","rest":"45s","grp":1},{"ex_id":"ex37","n":"DB Bench Press (TB)","s":4,"r":"6","rest":"","grp":2},{"ex_id":"ex32","n":"45 Degree Leg Press (TB)","s":4,"r":"6","rest":"","grp":3},{"ex_id":"ex62","n":"Box Jump","s":4,"r":"3","rest":"","grp":3},{"ex_id":"ex7","n":"Assault Bike","s":4,"r":"1 MIN HARD AS","rest":"60s","grp":4},{"ex_id":"ex5","n":"Wall Balls","s":4,"r":"25","rest":"60s","grp":4}]},{"id":"tpl9001","name":"Upper Push","plan":"Foundations","dur":50,"equip":"Barbell · Dumbbell","ex":[{"ex_id":"ex59","n":"Barbell Bench Press (TB)","s":4,"r":"8","rest":"90s","grp":null},{"ex_id":"ex89","n":"Barbell Shoulder Press (TB)","s":3,"r":"8","rest":"90s","grp":null},{"ex_id":"ex48","n":"DB Shoulder Press (TB)","s":3,"r":"10","rest":"60s","grp":null},{"ex_id":"ex46","n":"DB Lateral Raise (TB)","s":3,"r":"12","rest":"45s","grp":null},{"ex_id":"ex49","n":"Rope Tricep Pushdown (TB)","s":3,"r":"12","rest":"45s","grp":null}]},{"id":"tpl9002","name":"Lower Power","plan":"Foundations","dur":55,"equip":"Barbell · Machine","ex":[{"ex_id":"ex40","n":"Barbell Back Squat (TB)","s":4,"r":"6","rest":"2 min","grp":null},{"ex_id":"ex76","n":"Barbell RDL (TB)","s":3,"r":"8","rest":"90s","grp":null},{"ex_id":"ex72","n":"Seated Leg Press","s":3,"r":"12","rest":"90s","grp":null},{"ex_id":"ex18","n":"Lying Leg Curl (TB)","s":3,"r":"12","rest":"60s","grp":null},{"ex_id":"ex64","n":"Calf Raise (TB)","s":4,"r":"15","rest":"45s","grp":null}]},{"id":"tpl9003","name":"Upper Pull","plan":"Foundations","dur":50,"equip":"Barbell · Cable","ex":[{"ex_id":"ex36","n":"Barbell Bent Over Row (TB)","s":4,"r":"8","rest":"90s","grp":null},{"ex_id":"ex41","n":"Lat Pull Down (TB)","s":3,"r":"10","rest":"60s","grp":null},{"ex_id":"ex33","n":"Cable Seated Row (TB)","s":3,"r":"12","rest":"60s","grp":null},{"ex_id":"ex78","n":"DB Bicep Curl (TB)","s":3,"r":"12","rest":"45s","grp":null},{"ex_id":"ex8","n":"Pull Apart (TB)","s":3,"r":"15","rest":"30s","grp":null}]},{"id":"tpl9004","name":"HIIT Cardio","plan":"Foundations","dur":30,"equip":"Machine","ex":[{"ex_id":"ex7","n":"Assault Bike","s":6,"r":"30s hard / 90s easy","rest":"","grp":null},{"ex_id":"ex5","n":"Wall Balls","s":4,"r":"20","rest":"60s","grp":null}]},{"id":"tpl9005","name":"Core & Mobility","plan":"Foundations","dur":20,"equip":"Body weight · Mat","ex":[{"ex_id":"ex15","n":"Ab Crunch (TB)","s":3,"r":"15","rest":"30s","grp":null},{"ex_id":"ex17","n":"Side Plank (TB)","s":3,"r":"45s each","rest":"30s","grp":null},{"ex_id":"ex57","n":"Tuck Hollow Body Hold","s":3,"r":"45s","rest":"30s","grp":null},{"ex_id":"ex20","n":"90/90 Hip Stretch","s":1,"r":"30s each","rest":"","grp":null},{"ex_id":"ex23","n":"Downward Dog","s":1,"r":"30s","rest":"","grp":null}]}];
+const DEMO_CLIENTS=[
+  {id:'c1',name:'Sarah Mitchell',ini:'SM',col:'#8B5CF6',plan:'Fat Loss Phase 2',comp:94,streak:12,status:'active',wt:68.4,goal:62,exp:'Intermediate',sess:4,equip:'Full gym',inj:'Left knee — avoid deep lunges',email:'sarah@example.com',units:'metric'},
+  {id:'c2',name:'Jordan Kane',ini:'JK',col:'#06B6D4',plan:'Muscle Build',comp:78,streak:5,status:'active',wt:82.1,goal:88,exp:'Intermediate',sess:3,equip:'Full gym',inj:'None',email:'jordan@example.com',units:'imperial'},
+  {id:'c3',name:'Priya Thakur',ini:'PT',col:'#F59E0B',plan:'Strength Foundation',comp:45,streak:2,status:'warning',wt:61,goal:58,exp:'Beginner',sess:3,equip:'Dumbbells only',inj:'None',email:'priya@example.com',units:'metric'},
+];
+const DEMO_DAYS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+/* ─── HELPERS ─── */
+function gi(id){return document.getElementById(id)}
+function toast(msg,dur=3000){const t=gi('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),dur)}
+function tc(type){return{training:'#F59E0B',rest:'#3A3A50',checkin:'#8B5CF6',cardio:'#3B82F6'}[type]||'#3A3A50'}
+function ini(name=''){return name.split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase()}
+function av(i,c,sz=32){return`<div class="av" style="width:${sz}px;height:${sz}px;background:${c};font-size:${sz*.34}px">${i}</div>`}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+// Must be a real UUID: assigned_workouts.id (and checkins.id) are Postgres
+// `uuid` columns. A plain random string here used to get silently rejected
+// by Postgres on insert — and supabase-js does NOT throw a JS error for a
+// failed query, it just returns {error} in the response — so every brand-new
+// workout looked like it saved but never actually reached the database.
+function uid(){
+  if(window.crypto?.randomUUID)return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0,v=c==='x'?r:(r&0x3|0x8);return v.toString(16)});
+}
+
+/* ─── UNITS ── canonical storage is always metric (kg / metres); convert only for display+input ─── */
+function isImperial(){return PROFILE?.units==='imperial'}
+function wUnit(){return isImperial()?'lb':'kg'}
+function dUnit(){return isImperial()?'mi':'km'}
+function kgToDisp(kg){if(kg==null||kg==='')return '';return isImperial()?+(kg*2.20462).toFixed(1):+(+kg).toFixed(1)}
+function dispToKg(v){if(v==null||v==='')return null;return isImperial()?+(v/2.20462).toFixed(2):+v}
+function mToDisp(m){if(m==null||m==='')return '';return isImperial()?+(m/1609.34).toFixed(2):+(m/1000).toFixed(2)}
+function dispToM(v){if(v==null||v==='')return null;return isImperial()?+(v*1609.34).toFixed(0):+(v*1000).toFixed(0)}
+function secToMMSS(s){if(!s&&s!==0)return '';s=Math.round(s);return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function mmssToSec(v){if(!v)return null;const p=String(v).split(':').map(Number);if(p.length===2)return p[0]*60+(p[1]||0);return +v||null}
+
+/* ─── AI KEY (persisted per-browser; scoped loosely to the app, not per-user
+   since Anthropic keys aren't stored server-side in this build) ─── */
+function apiKey(){return window.__ak||localStorage.getItem('forged-ak')||''}
+function setApiKey(k){window.__ak=k;try{localStorage.setItem('forged-ak',k)}catch{}}
+
+/* ─── CONFIG / SETUP ─── */
+function readCfg(){try{return JSON.parse(localStorage.getItem(CFG_KEY)||'null')}catch{return null}}
+function saveCfg(url,key){try{localStorage.setItem(CFG_KEY,JSON.stringify({url,key}))}catch{}}
+function showSetup(){gi('setupScreen').classList.add('active');gi('authScreen').classList.remove('active')}
+function showErr(id,msg){const e=gi(id);e.textContent=msg;e.classList.add('show')}
+function clrErr(id){gi(id).classList.remove('show')}
+function showOk(id,msg){const e=gi(id);e.textContent=msg;e.classList.add('show')}
+
+async function connectSupabase(){
+  const url=gi('cfgUrl').value.trim(),key=gi('cfgKey').value.trim();
+  if(!url||!key){showErr('cfgError','Please enter both URL and key.');return}
+  const btn=gi('connectBtn');btn.disabled=true;btn.textContent='Connecting…';clrErr('cfgError');
+  try{
+    const r=await fetch(url+'/rest/v1/profiles?select=id&limit=1',{headers:{apikey:key}});
+    saveCfg(url,key);
+    if(r.status===404){showErr('cfgError','Connected but tables missing. Run forged-schema.sql then forged-seed.sql first.');btn.disabled=false;btn.textContent='Connect';return}
+    toast('Connected! Loading…');setTimeout(()=>location.reload(),700);
+  }catch{saveCfg(url,key);toast('Saved — loading…');setTimeout(()=>location.reload(),800)}
+  finally{btn.disabled=false;btn.textContent='Connect'}
+}
+
+function startDemo(){
+  DEMO=true;sb=null;USER={id:'demo',email:'demo@forged.app'};
+  PROFILE={id:'demo',full_name:'Demo Trainer',role:'trainer',must_change_password:false,email:'demo@forged.app',units:'metric',invite_code:'DEMO01'};
+  VIEW='trainer';
+  gi('setupScreen').classList.remove('active');gi('authScreen').classList.remove('active');
+  launch();toast('Demo mode — data is not saved');
+}
+
+/* ─── AUTH TABS ─── */
+function showAuthTab(which){
+  gi('loginCard').style.display=which==='login'?'block':'none';
+  gi('signupCard').style.display=which==='signup'?'block':'none';
+  gi('atLogin').classList.toggle('active',which==='login');
+  gi('atSignup').classList.toggle('active',which==='signup');
+}
+function setSuRole(role){
+  suRole=role;
+  gi('suRoleClient').classList.toggle('on',role==='client');
+  gi('suRoleCoach').classList.toggle('on',role==='coach');
+  gi('suCodeField').style.display=role==='coach'?'flex':'none';
+  gi('suCodeField').style.flexDirection='column';
+  gi('suCodeLbl').textContent=role==='coach'?'Coach setup code':'Coach invite code (optional)';
+  gi('suCode').placeholder=role==='coach'?'Given to you by the app owner':'e.g. 7F2K9Q';
+  gi('suNote').textContent=role==='coach'?'Enter the coach setup code given to you by the app owner.':'Enter your details to get started as a client.';
+}
+/* the public form defaults to a plain client signup — no role picker, no
+   code field. Clicking "Are you a coach?" reveals the role toggle + coach
+   setup code field for the rare case someone needs to register as a coach. */
+function toggleCoachSignup(e){
+  if(e)e.preventDefault();
+  const block=gi('suRoleBlock');
+  const showing=block.style.display!=='none';
+  if(showing){block.style.display='none';setSuRole('client')}
+  else{block.style.display='block';setSuRole('coach')}
+}
+/* if the page was opened via a coach's invite link (?invite=CODE), keep the
+   simple client form but silently carry the code through to signup */
+function applyInviteFromURL(){
+  try{
+    const code=new URLSearchParams(location.search).get('invite');
+    if(!code)return;
+    showAuthTab('signup');
+    setSuRole('client');
+    gi('suCode').value=code;
+    gi('suNote').textContent="You're signing up as a client — your account will link to your coach automatically.";
+    gi('suName').focus();
+  }catch{}
+}
+function togglePwVis(id,btn){
+  const inp=gi(id);if(!inp)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.textContent=show?'🙈':'👁️';
+}
+
+/* ─── LOGIN ─── */
+async function doLogin(){
+  const email=gi('loginEmail').value.trim(),pw=gi('loginPassword').value;
+  if(!email||!pw){showErr('loginError','Please enter your email and password.');return}
+  clrErr('loginError');
+  const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
+    if(error){showErr('loginError',error.message==='Invalid login credentials'?'Email or password is incorrect.':error.message);return}
+    USER=data.user;await loadProfile();
+  }finally{btn.disabled=false;btn.textContent='Sign in →'}
+}
+
+/* ─── SIGN UP ─── */
+async function doSignup(){
+  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim(),pw=gi('suPassword').value,pw2=gi('suPassword2').value;
+  const code=gi('suCode').value.trim().toUpperCase();
+  clrErr('suError');gi('suOk').classList.remove('show');
+  if(!name||!email||!pw){showErr('suError','Please fill in your name, email, and password.');return}
+  if(pw.length<8){showErr('suError','Password must be at least 8 characters.');return}
+  if(pw!==pw2){showErr('suError','Passwords do not match.');return}
+  if(suRole==='coach'&&code!==COACH_SETUP_CODE){showErr('suError','Incorrect coach setup code.');return}
+  let coachId=null;
+  if(suRole==='client'){
+    if(code){
+      const{data:coachRow,error:cErr}=await sb.from('profiles').select('id,role').eq('invite_code',code).eq('role','trainer').maybeSingle();
+      if(cErr||!coachRow){showErr('suError','That coach invite code was not found.');return}
+      coachId=coachRow.id;
+    }else{
+      // no code entered — if there's exactly one coach account in the
+      // system, link automatically so clients never have to deal with codes
+      try{
+        const{data:trainers}=await sb.from('profiles').select('id').eq('role','trainer');
+        if(trainers&&trainers.length===1)coachId=trainers[0].id;
+      }catch{}
+    }
+  }
+  const btn=gi('suBtn');btn.disabled=true;btn.textContent='Creating account…';
+  try{
+    const{data,error}=await sb.auth.signUp({email,password:pw});
+    if(error){showErr('suError',error.message);return}
+    const newUser=data.user;
+    if(!newUser){showErr('suError','Something went wrong creating your account.');return}
+    const{error:pErr}=await sb.from('profiles').upsert({
+      id:newUser.id,email,full_name:name,role:suRole==='coach'?'trainer':'client',
+      must_change_password:false,coach_id:coachId,units:'metric'
+    },{onConflict:'id'});
+    if(pErr){showErr('suError','Account created but profile setup failed: '+pErr.message);return}
+    if(data.session){
+      USER=newUser;await loadProfile();
+    }else{
+      showOk('suOk','Account created! Check your email to confirm, then sign in.');
+      setTimeout(()=>showAuthTab('login'),1800);
+    }
+  }finally{btn.disabled=false;btn.textContent='Create account →'}
+}
+
+async function loadProfile(){
+  if(DEMO)return;
+  let data=null, error=null;
+  for(let i=0;i<3;i++){
+    const res=await sb.from('profiles').select('*').eq('id',USER.id).single();
+    data=res.data; error=res.error;
+    if(data) break;
+    await new Promise(r=>setTimeout(r,500));
+  }
+  if(error||!data){
+    console.warn('FORGED: profile not found, creating...',error);
+    await sb.from('profiles').upsert({
+      id:USER.id, email:USER.email, role:'client', must_change_password:true
+    },{onConflict:'id'});
+    const res2=await sb.from('profiles').select('*').eq('id',USER.id).single();
+    data=res2.data;
+  }
+  PROFILE=data;
+  if(!PROFILE){
+    alert('Could not load your profile. Please check Supabase RLS policies or contact support.');
+    return;
+  }
+  if(PROFILE.must_change_password){
+    gi('authScreen').classList.add('active');
+    gi('loginCard').style.display='none';gi('signupCard').style.display='none';
+    gi('setPwCard').style.display='block';
+    if(PROFILE.full_name)gi('setPwWelcome').textContent=`Welcome, ${PROFILE.full_name.split(' ')[0]}! Choose a secure password to get started.`;
+  } else {
+    gi('authScreen').classList.remove('active');
+    launch();
+  }
+}
+
+function checkPwRules(){
+  const pw=gi('newPw').value;
+  const rules=[{id:'r-len',ok:pw.length>=8,l:'At least 8 characters'},{id:'r-up',ok:/[A-Z]/.test(pw),l:'One uppercase letter'},{id:'r-lo',ok:/[a-z]/.test(pw),l:'One lowercase letter'},{id:'r-num',ok:/[0-9]/.test(pw),l:'One number'}];
+  const allOk=rules.every(r=>r.ok);
+  rules.forEach(r=>{const e=gi(r.id);if(!e)return;e.className='pw-rule'+(r.ok?' ok':'');e.textContent=(r.ok?'✓ ':'○ ')+r.l});
+  gi('setPwBtn').disabled=!allOk;
+}
+
+async function doSetPw(){
+  const pw=gi('newPw').value,conf=gi('confPw').value;
+  if(pw!==conf){showErr('setPwErr','Passwords do not match.');return}
+  clrErr('setPwErr');
+  const btn=gi('setPwBtn');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const{error}=await sb.auth.updateUser({password:pw});
+    if(error){showErr('setPwErr',error.message);return}
+    await sb.from('profiles').update({must_change_password:false}).eq('id',USER.id);
+    PROFILE.must_change_password=false;
+    gi('authScreen').classList.remove('active');gi('setPwCard').style.display='none';gi('loginCard').style.display='block';
+    launch();toast('Password set — welcome to FORGED! 🔥');
+  }finally{btn.disabled=false;btn.textContent='Set password & continue →'}
+}
+
+async function doSO(){if(!DEMO)await sb.auth.signOut();USER=null;PROFILE=null;DEMO=false;gi('app').style.display='none';gi('app').classList.remove('active');gi('authScreen').classList.add('active');closePM()}
+
+/* ─── DATA LAYER ─────────────────────────────────────────────────────────
+   Every read/write goes through these functions so the rest of the app
+   doesn't care whether it's talking to Supabase or running in Demo mode. */
+async function loadAppData(){
+  if(DEMO){
+    EXLIB=EXLIB_DEMO.slice();TEMPLATES=TPL_DEMO.slice();
+    seedDemoWorkouts();
+    seedDemoHistory();
+    CLIENTS=DEMO_CLIENTS.map(c=>({...c}));
+    return;
+  }
+  try{
+    const{data}=await sb.from('exercise_library').select('*').order('name');
+    EXLIB=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,cat:x.category,musc:x.muscle_group,equip:x.equipment,track:x.tracking_type})):EXLIB_DEMO.slice();
+  }catch{EXLIB=EXLIB_DEMO.slice()}
+  try{
+    const{data}=await sb.from('workout_templates').select('*').order('plan');
+    TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[]})):TPL_DEMO.slice();
+  }catch{TEMPLATES=TPL_DEMO.slice()}
+
+  await loadSharedAIKey();
+
+  if(PROFILE.role==='trainer'){
+    await loadClientRoster();
+  }else{
+    await loadMyWorkouts();
+  }
+}
+
+/* The Anthropic key only needs to be entered ONCE, by the coach, in Settings.
+   It's saved to the app_config table so every client's browser picks it up
+   automatically on load — before this, each browser only had whatever key
+   *that specific device* had typed in locally, so clients (and the coach on
+   a second device) always saw "add your API key" even after it was added
+   elsewhere. This keeps a local-storage cache too so the AI still works
+   offline-ish for a session even if this fetch fails. */
+async function loadSharedAIKey(){
+  if(DEMO)return;
+  try{
+    const{data}=await sb.from('app_config').select('ai_key').eq('id',1).maybeSingle();
+    if(data&&data.ai_key)setApiKey(data.ai_key);
+  }catch{}
+}
+
+/* Bulk-loads the coach's client roster plus this week's workouts for all of
+   them in one extra query, so compliance/session counts on the roster are
+   real numbers instead of placeholders. */
+async function loadClientRoster(){
+  try{
+    const{data,error}=await sb.from('profiles').select('*').eq('coach_id',PROFILE.id).order('full_name');
+    if(error)throw error;
+    const rows=data||[];
+    const ids=rows.map(c=>c.id);
+    let byClient={};
+    if(ids.length){
+      const start=weekStartISO(new Date());const end=addDaysISO(start,7);
+      const{data:wks}=await sb.from('assigned_workouts').select('*').in('client_id',ids).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
+      (wks||[]).forEach(w=>{(byClient[w.client_id]=byClient[w.client_id]||[]).push(w)});
+    }
+    CLIENTS=rows.map(c=>{
+      const wks=byClient[c.id]||[];
+      const trainable=wks.filter(w=>w.type==='training'||w.type==='cardio');
+      const done=trainable.filter(w=>w.status==='done').length;
+      const comp=trainable.length?Math.round(done/trainable.length*100):0;
+      return{id:c.id,name:c.full_name||c.email,ini:ini(c.full_name||c.email||'?'),
+        col:['#8B5CF6','#06B6D4','#F59E0B','#22C55E','#EF4444'][Math.abs(hashStr(c.id))%5],
+        plan:'—',comp,sessDone:done,sessTotal:trainable.length,streak:0,
+        status:!trainable.length?'active':comp>=70?'active':comp>=40?'warning':'danger',
+        wt:0,goal:0,exp:'—',sess:trainable.length,
+        equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric',
+        _workouts:wks};
+    });
+  }catch(e){console.warn('FORGED: could not load client roster',e);CLIENTS=[]}
+}
+
+function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h}
+
+async function loadMyWorkouts(){
+  if(DEMO){seedDemoWorkouts();seedDemoHistory();return}
+  try{
+    const start=weekStartISO(new Date());
+    const end=addDaysISO(start,7);
+    const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',USER.id).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
+    MY_WORKOUTS=data||[];
+  }catch{MY_WORKOUTS=[]}
+  await loadExerciseHistory();
+}
+
+/* Pulls this client's full logging history once per session so the Set
+   Logger can show "last time" and detect PBs without a query per exercise.
+   Keyed by exercise NAME (not id) so it still matches across a swap or a
+   catalog edit that keeps the same exercise name. */
+async function loadExerciseHistory(){
+  if(DEMO){seedDemoHistory();return}
+  EX_HISTORY={};
+  try{
+    const{data}=await sb.from('workout_logs').select('exercise_name,reps,weight_kg,distance_m,time_sec,completed_at').eq('client_id',USER.id).order('completed_at',{ascending:false}).limit(3000);
+    (data||[]).forEach(r=>{
+      const h=EX_HISTORY[r.exercise_name]=EX_HISTORY[r.exercise_name]||{last:null,best:{}};
+      if(!h.last)h.last={reps:r.reps,weight_kg:r.weight_kg,distance_m:r.distance_m,time_sec:r.time_sec,completed_at:r.completed_at};
+      if(r.weight_kg!=null)h.best.weight_kg=Math.max(h.best.weight_kg||0,r.weight_kg);
+      if(r.reps!=null)h.best.reps=Math.max(h.best.reps||0,r.reps);
+      if(r.distance_m!=null)h.best.distance_m=Math.max(h.best.distance_m||0,r.distance_m);
+      if(r.time_sec!=null)h.best.time_sec=Math.max(h.best.time_sec||0,r.time_sec);
+    });
+  }catch{EX_HISTORY={}}
+}
+/* demo mode never touches Supabase — seed a plausible history for whatever's
+   in this week's demo plan so "last time" and the PB celebration are
+   actually visible when trying the app out */
+function seedDemoHistory(){
+  if(Object.keys(EX_HISTORY).length)return;
+  MY_WORKOUTS.forEach(wk=>(wk.exercises||[]).forEach(ex=>{
+    if(EX_HISTORY[ex.n])return;
+    const h={last:{completed_at:new Date(Date.now()-6*86400000).toISOString()},best:{}};
+    if(ex.track==='reps_weight'){h.last.weight_kg=Math.max(0,(ex.weight_kg||20)-5);h.last.reps=ex.reps||8;h.best.weight_kg=h.last.weight_kg;h.best.reps=h.last.reps}
+    else if(ex.track==='distance_time'){h.last.distance_m=Math.max(0,(ex.distance_m||400)-100);h.last.time_sec=ex.time_sec;h.best.distance_m=h.last.distance_m}
+    else if(ex.track==='time_only'){h.last.time_sec=Math.max(0,(ex.time_sec||20)-5);h.best.time_sec=h.last.time_sec}
+    else if(ex.track==='reps_only'){h.last.reps=Math.max(0,(ex.reps||10)-3);h.best.reps=h.last.reps}
+    EX_HISTORY[ex.n]=h;
+  }));
+}
+
+// Timezone-safe: anchor everything at UTC midnight for the given calendar
+// date so day-math never drifts by ±1 day depending on the browser's locale.
+function weekStartISO(d){const dt=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));const day=(dt.getUTCDay()+6)%7;dt.setUTCDate(dt.getUTCDate()-day);return dt.toISOString().slice(0,10)}
+function addDaysISO(iso,n){const[y,m,day]=iso.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,day));dt.setUTCDate(dt.getUTCDate()+n);return dt.toISOString().slice(0,10)}
+
+/* in-memory demo workouts, generated once per session so Try Demo is fully clickable */
+let DEMO_WK_SEEDED=false;
+function seedDemoWorkouts(){
+  if(DEMO_WK_SEEDED)return;DEMO_WK_SEEDED=true;
+  const start=weekStartISO(new Date());
+  const plan=[
+    {off:0,type:'training',tpl:'tpl9001'},{off:1,type:'rest'},{off:2,type:'training',tpl:'tpl9002'},
+    {off:3,type:'checkin'},{off:4,type:'training',tpl:'tpl9003'},{off:5,type:'cardio',tpl:'tpl9004'},{off:6,type:'rest'}
+  ];
+  MY_WORKOUTS=[];
+  plan.forEach(p=>{
+    if(p.type==='rest'||p.type==='checkin'){
+      MY_WORKOUTS.push({id:uid(),client_id:USER.id,coach_id:PROFILE.id,scheduled_date:addDaysISO(start,p.off),name:p.type==='rest'?'Rest Day':'Check-In',type:p.type,dur:0,exercises:[],status:'pending'});
+      return;
+    }
+    const t=TEMPLATES.find(x=>x.id===p.tpl);
+    if(!t)return;
+    MY_WORKOUTS.push({id:uid(),client_id:USER.id,coach_id:PROFILE.id,scheduled_date:addDaysISO(start,p.off),name:t.name,type:p.type,dur:t.dur,
+      exercises:t.ex.map(e=>tplExToWkEx(e)),status:'pending'});
+  });
+  // give each client in demo mode their own tiny plan too (used by rClientDetail/openWB)
+  DEMO_CLIENTS.forEach((c,ci)=>{
+    const t=TEMPLATES[ci%TEMPLATES.length];
+    if(!c._workouts){
+      c._workouts=[0,2,4].map((off,i)=>{
+        const tt=TEMPLATES[(ci+i)%TEMPLATES.length];
+        return {id:uid(),client_id:c.id,coach_id:PROFILE.id,scheduled_date:addDaysISO(start,off),name:tt.name,type:'training',dur:tt.dur,
+          exercises:tt.ex.map(e=>tplExToWkEx(e)),status:i===0?'done':'pending'};
+      });
+    }
+  });
+}
+
+function tplExToWkEx(e){
+  const lib=findExById(e.ex_id)||classifyByName(e.n);
+  const parsed=parseRepString(e.r,lib.track);
+  return{ex_id:lib.id||e.ex_id,n:e.n,cat:lib.cat,track:lib.track,musc:lib.musc,equip:lib.equip,
+    s:e.s||1,reps:parsed.reps,weight_kg:parsed.weight_kg,distance_m:parsed.distance_m,time_sec:parsed.time_sec,
+    level:parsed.level,rest:e.rest||'',grp:e.grp||null,note:e.r,done:false};
+}
+
+function findExById(id){return EXLIB.find(x=>x.id===id)}
+function findExByName(name){return EXLIB.find(x=>x.name.toLowerCase()===String(name).toLowerCase())}
+
+/* lightweight fallback classifier — mirrors the offline PDF classifier, used
+   when a template references an exercise id that isn't in the loaded library
+   (e.g. a trimmed demo library) so the workout builder still degrades gracefully */
+function classifyByName(name){
+  const n=(name||'').toLowerCase();
+  const rules=[
+    [/running|\brun\b/,'cardio','Cardio','Body weight','distance_time'],
+    [/cycl|bike ?erg|assault bike|spin/,'cardio','Cardio','Machine','distance_time'],
+    [/rowing|row erg/,'cardio','Cardio','Machine','distance_time'],
+    [/ski ?erg/,'cardio','Cardio','Machine','distance_time'],
+    [/sled/,'strength','Full Body','Sled','level_distance'],
+    [/farmer|overhead carry|suitcase carry/,'strength','Full Body','Dumbbell','distance_time'],
+    [/wall ball/,'strength','Full Body','Medicine Ball','reps_only'],
+    [/burpee|box jump|broad jump|squat jump/,'strength','Full Body','Body weight','reps_only'],
+    [/stretch|mobili|dislocate|cobra|downward dog|bird dog|pigeon|frog|toe touch|90\/90/,'mobility','Mobility','Body weight','time_only'],
+    [/plank|hollow|dead ?bug|crunch|sit.?up|ab (knee|rotation)|pallof|core/,'core','Core','Body weight','reps_weight'],
+    [/squat|lunge|leg press/,'strength','Quads','Barbell','reps_weight'],
+    [/deadlift|rdl|hip thrust|glute bridge|hip abduction|hip adduction/,'strength','Glutes/Hamstrings','Barbell','reps_weight'],
+    [/leg curl|leg extension|calf raise/,'strength','Legs','Machine','reps_weight'],
+    [/bench|chest press|push.?up|fly|dip/,'strength','Chest','Barbell','reps_weight'],
+    [/shoulder press|overhead press|lateral raise|upright row/,'strength','Shoulders','Dumbbell','reps_weight'],
+    [/\brow\b|lat pull|pull.?up|pulldown/,'strength','Back','Cable','reps_weight'],
+    [/curl/,'strength','Biceps','Dumbbell','reps_weight'],
+    [/tricep|pushdown/,'strength','Triceps','Cable','reps_weight'],
+  ];
+  for(const[re,cat,musc,equip,track]of rules){if(re.test(n))return{id:null,name,cat,musc,equip,track}}
+  return{id:null,name,cat:'strength',musc:'Full Body',equip:'Body weight',track:'reps_weight'};
+}
+
+/* parse a free-text rep target like "12", "500m", "30 sec", "12.5m @ level 3"
+   into structured numeric fields, seeded as *targets* the client can log against */
+function parseRepString(r,track){
+  const out={reps:null,weight_kg:null,distance_m:null,time_sec:null,level:null};
+  if(!r)return out;
+  const s=String(r);
+  const distM=s.match(/([\d.]+)\s*km/i); if(distM){out.distance_m=+distM[1]*1000}
+  const distMm=s.match(/([\d.]+)\s*m(?!in)/i); if(!out.distance_m&&distMm){out.distance_m=+distMm[1]}
+  const timeM=s.match(/([\d.]+)\s*(min|mins|minutes)/i); if(timeM){out.time_sec=+timeM[1]*60}
+  const secM=s.match(/([\d.]+)\s*sec/i); if(secM){out.time_sec=+secM[1]}
+  const lvlM=s.match(/level\s*(\d+)/i); if(lvlM){out.level=+lvlM[1]}
+  const repsM=s.match(/^(\d+)/); if(repsM&&track!=='distance_time'){out.reps=+repsM[1]}
+  if(track==='reps_weight'&&out.reps==null){const m2=s.match(/(\d+)/);if(m2)out.reps=+m2[1]}
+  return out;
+}
+
+/* ─── LAUNCH ─── */
+async function launch(){
+  gi('app').style.display='flex';gi('app').classList.add('active');
+  const isT=(PROFILE && PROFILE.role==='trainer')||DEMO;
+  const ac=isT?'#F59E0B':'#8B5CF6';
+  const ai=ini(PROFILE?.full_name||USER?.email||'?');
+  gi('tav').style.background=ac;gi('tav').textContent=ai;gi('tav').style.color='#0A0A0C';
+  gi('mue').textContent=PROFILE?.full_name||USER?.email||'';
+  if(isT){
+    gi('vpill').style.display='flex';
+    VIEW='trainer';
+    gi('cvb').classList.remove('active');
+    gi('tvb').classList.add('active');
+  }else{
+    VIEW='client';
+  }
+  await loadAppData();
+  renderSB();renderMain();
+}
+
+/* ─── PROFILE MENU ─── */
+function togglePM(){gi('pmenu').classList.toggle('open')}
+function closePM(){gi('pmenu').classList.remove('open')}
+document.addEventListener('click',e=>{if(!e.target.closest('#tav')&&!e.target.closest('#pmenu'))closePM()});
+
+/* ─── MODAL CLOSE HELPERS — click the dark backdrop or press Escape to close
+   whichever overlay is open, same as the ✕ button (safe/no-save default) ─── */
+function closeOverlayOnBackdrop(e,closeFn){if(e.target===e.currentTarget)closeFn()}
+const OVERLAY_CLOSERS=[['slOv',()=>closeSL()],['wbOv',()=>closeWB()],['swapOv',()=>closeSwap()],['pbOv',()=>closePB()],['ciOv',()=>closeCI()],['winOv',()=>closeWin()]];
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  for(const[id,fn]of OVERLAY_CLOSERS){const el=gi(id);if(el&&el.classList.contains('open')){fn();break}}
+});
+
+/* ─── VIEW SWITCH ─── */
+function switchView(v){
+  VIEW=v;gi('cvb').classList.toggle('active',v==='client');gi('tvb').classList.toggle('active',v==='trainer');
+  renderSB();renderMain();
+}
+
+/* ─── SIDEBAR ─── */
+const CNAV=[{id:'training',ic:'⚡',l:'Today'},{id:'ai',ic:'🤖',l:'AI Assistant'},{id:'food',ic:'🥗',l:'Nutrition'},{id:'checkin',ic:'📸',l:'Check-In'},{id:'progress',ic:'📈',l:'Progress'},{id:'settings',ic:'⚙️',l:'Settings'}];
+const TNAV=[{id:'clients',ic:'👥',l:'Clients'},{id:'catalog',ic:'📚',l:'Workout Catalog'},{id:'upload',ic:'📄',l:'Upload Plans'},{id:'overview',ic:'📊',l:'Overview'},{id:'ai',ic:'⚡',l:'AI Tools'},{id:'settings',ic:'⚙️',l:'Settings'}];
+
+function renderSB(){
+  const isT=VIEW==='trainer';
+  gi('sblbl').textContent=isT?'Trainer Tools':'My Training';
+  const nav=isT?TNAV:CNAV,at=isT?ttab:ctab;
+  const name=PROFILE?.full_name||(USER?.email?.split('@')[0])||'';
+  const col=isT?'#F59E0B':'#8B5CF6';
+  gi('sbav').style.background=col;gi('sbav').textContent=ini(name||'?');gi('sbav').style.color='#0A0A0C';
+  gi('sbun').textContent=name||USER?.email||'';gi('sbur').textContent=isT?'Head Trainer':'Member';
+  gi('sbnav').innerHTML=nav.map(n=>`<div class="sb-item ${at===n.id?'active':''}" onclick="setTab('${n.id}')"><span class="sb-icon">${n.ic}</span>${n.l}</div>`).join('');
+}
+
+function setTab(id){if(VIEW==='trainer')ttab=id;else ctab=id;renderSB();renderMain()}
+
+/* ─── MAIN ─── */
+function renderMain(){VIEW==='client'?renderClient():renderTrainer()}
+
+/* ═══ CLIENT ═══ */
+function weekOfLabel(){const s=weekStartISO(new Date());const d=new Date(s+'T00:00:00');return `Week of ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
+
+function renderClient(){
+  // the tabs bar is the ONLY nav on mobile (sidebar hides below 800px), so it
+  // must always be rendered — including Settings/Progress — or there's no way
+  // back once you're on a tab like Settings that used to bypass this entirely.
+  const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  if(ctab==='settings'){gi('mc').innerHTML=clientTabs+settingsPanel();return}
+  const start=weekStartISO(new Date());
+  const days=DEMO_DAYS.map((lbl,i)=>{
+    const iso=addDaysISO(start,i);
+    const dayWks=MY_WORKOUTS.filter(w=>w.scheduled_date===iso);
+    const d=new Date(iso+'T00:00:00');
+    const first=dayWks[0];
+    const label=dayWks.length?(dayWks.length>1?`${first.name} +${dayWks.length-1}`:first.name):'Rest Day';
+    return{day:lbl,date:d.getDate(),iso,label,type:first?first.type:'rest',dayWks};
+  });
+  if(selDay==null||!days[selDay])selDay=days.findIndex(d=>d.iso===todayISO());
+  if(selDay<0)selDay=0;
+  const d=days[selDay];
+  const hasCheckin=d.dayWks.some(w=>w.type==='checkin');
+
+  const cal=`<div class="card" style="margin-bottom:16px">
+    <div class="ctr"><div class="ct" style="margin-bottom:0">${weekOfLabel()}</div></div>
+    <div class="wcal">${days.map((w,i)=>{const c=tc(w.type);const s=selDay===i;const isToday=w.iso===todayISO();return`<div class="wday ${s?'sel':''}" onclick="selD(${i})" style="${s?`border-color:${c};background:${c}18`:''};position:relative">
+      ${isToday?`<div class="tdot"></div>`:''}
+      <div class="wday-lbl">${w.day}</div>
+      <div class="wday-date" style="${s?`color:${c}`:''}">${w.date}</div>
+      <div class="wtag" style="background:${c}20;color:${c};border:1px solid ${c}30">${w.label}</div>
+    </div>`}).join('')}</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap;gap:10px">
+      <div>
+        <div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--text)">${d.day} · ${d.dayWks.length?`${d.dayWks.length} session${d.dayWks.length>1?'s':''}`:'Rest Day'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${d.dayWks.length?'Tap a session below to log it, or add another':'Nothing scheduled — add a workout below whenever you like'}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-g" style="padding:8px 14px;font-size:12px" onclick='openWB(${JSON.stringify({name:"Workout",type:"training",scheduled_date:d.iso,exercises:[]}).replace(/'/g,"&apos;")},"client-today")'>+ Add Workout</button>
+        ${hasCheckin?`<button onclick="setTab('checkin')" style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.3);border-radius:8px;padding:8px 16px;color:#8B5CF6;font-weight:700;font-size:12px;cursor:pointer">Open Check-In</button>`:''}
+      </div>
+    </div>
+  </div>`;
+
+  const tabs=clientTabs;
+
+  let body='';
+  if(ctab==='training'||ctab==='today'){
+    body=`
+    <div class="g2" style="align-items:start">
+      <div class="col">
+        ${d.dayWks.length?d.dayWks.filter(w=>w.type!=='checkin'&&w.type!=='rest').map(wk=>{
+          const exList=wk.exercises||[];
+          const lc=exList.filter(e=>e.done).length;
+          const hp=exList.length?Math.round((lc/exList.length)*100):0;
+          return`<div class="card">
+          <div class="ctr"><div class="ct" style="margin-bottom:0">${wk.name}${wk.status==='done'?' ✅':''}</div>
+            <div style="display:flex;gap:6px">
+              <button class="iconbtn" onclick='openWB(${JSON.stringify(wk).replace(/'/g,"&apos;")},"client-today")'>✏️ Edit</button>
+              <button class="iconbtn danger" onclick="deleteMyWorkout('${wk.id}')">🗑</button>
+            </div>
+          </div>
+          ${exList.length?`<div style="margin-bottom:16px"><div class="hrow"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:1px">SESSION PROGRESS</span><span style="font-size:12px;color:var(--amber);font-weight:700">${hp}%</span></div><div class="htrack"><div class="hfill" style="width:${hp}%"></div></div></div>`:''}
+          ${exList.length?exList.map((ex,i)=>`<div class="exr ${ex.done?'done':''}" onclick="openSL('${wk.id}',${i})">
+            <div class="exnum">${i+1}</div>
+            <div style="flex:1"><div class="exname">${ex.n}</div><div class="exmeta">${exMetaLabel(ex)}</div></div>
+            <div class="dots">${Array.from({length:ex.s||1}).map(()=>`<div class="dot ${ex.done?'lit':''}"></div>`).join('')}</div>
+            ${ex.done?'<span style="color:var(--green);font-size:14px">✓</span>':''}
+          </div>`).join(''):`<p style="font-size:13px;color:var(--muted)">No exercises yet — tap ✏️ Edit to add some.</p>`}
+        </div>`}).join(''):`<div class="card" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:32px;margin-bottom:10px">🛌</div><div style="font-size:13px">Rest day — nothing scheduled. Enjoy it, or use "+ Add Workout" above if you want to train anyway.</div></div>`}
+      </div>
+      <div class="col">
+        <div class="g2">${[{l:'🔥 Streak',v:'12',u:' days'},{l:'Sessions',v:String(MY_WORKOUTS.filter(w=>w.status==='done').length),u:'/'+MY_WORKOUTS.filter(w=>w.type==='training'||w.type==='cardio').length,d:'On track',up:true},{l:'Units',v:wUnit(),u:''},{l:'Weight',v:'—',u:PROFILE?.units==='imperial'?'lb':'kg'}].map(s=>`<div class="smi"><div class="sv">${s.v}<span class="su">${s.u}</span></div><div class="sl">${s.l}</div>${s.d?`<div class="${s.up?'dup':'ddn'}">${s.d}</div>`:''}</div>`).join('')}</div>
+        <div class="card csm"><div class="ct">💬 Coach Note</div><div style="font-size:13px;color:var(--text);line-height:1.7;font-style:italic">"Great work this week — keep logging every set so I can track your progress and adjust the plan. Ping me in AI chat if anything's not working for you. 💪"</div><div style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px">YOUR COACH</div></div>
+      </div>
+    </div>`;
+  }
+  else if(ctab==='ai'){body=aiPanel();setTimeout(attachAI,0)}
+  else if(ctab==='food'){body=foodPanel()}
+  else if(ctab==='checkin'){body=ciPanel()}
+  else if(ctab==='progress'){body=`<div class="card"><div class="ct">📈 Progress</div><p style="color:var(--muted);font-size:13px">Progress charts will appear here as you log sessions and submit check-ins.</p></div>`}
+
+  gi('mc').innerHTML=cal+tabs+body;
+}
+
+function exMetaLabel(ex){
+  if(ex.track==='distance_time')return `${ex.s} × ${ex.distance_m?mToDisp(ex.distance_m)+dUnit():''}${ex.time_sec?' in '+secToMMSS(ex.time_sec):''}`.trim()||ex.note||'';
+  if(ex.track==='time_only')return `${ex.s} × ${ex.time_sec?secToMMSS(ex.time_sec):ex.note||''}`;
+  if(ex.track==='reps_only')return `${ex.s} × ${ex.reps||ex.note||''} reps`;
+  if(ex.track==='level_distance')return `${ex.s} × ${ex.level?'Level '+ex.level+' · ':''}${ex.distance_m?mToDisp(ex.distance_m)+dUnit():ex.note||''}`;
+  return `${ex.s} × ${ex.reps||'?'} reps${ex.weight_kg?' @ '+kgToDisp(ex.weight_kg)+wUnit():''}`;
+}
+
+function selD(i){selDay=i;renderMain()}
+function startSession(wkId){const w=MY_WORKOUTS.find(x=>x.id===wkId);if(w)openSL(wkId,0)}
+
+/* Clients have full control over their own schedule — they can delete a
+   workout the coach assigned OR one they added themselves. */
+async function deleteMyWorkout(wkId){
+  if(!confirm('Remove this workout from your plan?'))return;
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').delete().eq('id',wkId);
+    if(error){toast('Could not remove: '+error.message);return}
+  }
+  MY_WORKOUTS=MY_WORKOUTS.filter(w=>w.id!==wkId);
+  renderMain();toast('Removed ✓');
+}
+
+/* ─── SETTINGS (shared by client + trainer) ─── */
+function settingsPanel(){
+  const isT=VIEW==='trainer';
+  return`<div class="col" style="max-width:560px">
+    <div class="card">
+      <div class="ct">👤 Profile</div>
+      <div class="field"><label>Full name</label><input class="fi" id="stName" value="${PROFILE?.full_name||''}"></div>
+      <div class="field"><label>Email</label><input class="fi" value="${PROFILE?.email||USER?.email||''}" disabled></div>
+      ${!isT?`<div class="field"><label>Injuries / limitations (helps the AI pick safe swaps)</label><textarea class="fi" id="stInj" rows="2" placeholder="e.g. left knee, avoid deep flexion">${PROFILE?.injuries||''}</textarea></div>
+      <div class="field"><label>Equipment access</label><input class="fi" id="stEquip" placeholder="e.g. home gym, dumbbells only" value="${PROFILE?.equipment_notes||''}"></div>`:''}
+      <button class="btn-p" onclick="saveProfileSettings()">Save Profile</button>
+    </div>
+    <div class="card">
+      <div class="ct">📐 Units</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Weight shows in ${isImperial()?'pounds (lb)':'kilograms (kg)'}, distance in ${isImperial()?'miles (mi)':'kilometres (km)'}. Everything is stored consistently under the hood, so switching is safe at any time.</p>
+      <div class="unit-toggle">
+        <button class="unit-opt ${!isImperial()?'on':''}" onclick="setUnits('metric')">Metric (kg/km)</button>
+        <button class="unit-opt ${isImperial()?'on':''}" onclick="setUnits('imperial')">Imperial (lb/mi)</button>
+      </div>
+    </div>
+    ${isT?`<div class="card">
+      <div class="ct">🔑 Anthropic API Key</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">Powers AI chat, the AI exercise-swap tool, PDF extraction, and workout generation for you AND every client — enter it once here and it syncs automatically to their devices.</p>
+      <input class="fi" type="password" id="stAk" placeholder="sk-ant-..." style="margin-bottom:8px" value="${apiKey()?'••••••••••••••••':''}">
+      <button onclick="saveAKSettings()" class="btn-p">Save Key</button>
+    </div>`:`<div class="card">
+      <div class="ct">🤖 AI Assistant</div>
+      <p style="font-size:12px;color:var(--muted);line-height:1.6">${apiKey()?'✅ Enabled — your coach has set this up for you.':'⏳ Not enabled yet — ask your coach to add their Anthropic API key in their Settings.'}</p>
+    </div>`}
+    ${isT?`<div class="card">
+      <div class="ct">🔗 Invite a Client</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Send a client this link. It opens the app straight on the Sign Up screen with your code already filled in — they just add their name, email, and password.</p>
+      <div class="invite-chip" style="margin-bottom:10px">${PROFILE?.invite_code||'—'}</div>
+      <div style="display:flex;gap:8px">
+        <input class="fi" id="inviteLinkInp" readonly value="${inviteLink()}" onclick="this.select()">
+        <button class="btn-p" style="width:auto;padding:11px 16px;white-space:nowrap;margin-top:0" onclick="copyInviteLink()">Copy Link</button>
+      </div>
+    </div>`:''}
+  </div>`;
+}
+function inviteLink(){
+  if(!PROFILE?.invite_code)return '';
+  const base=location.origin+location.pathname;
+  return `${base}?invite=${encodeURIComponent(PROFILE.invite_code)}`;
+}
+async function copyInviteLink(){
+  const link=inviteLink();
+  if(!link){toast('No invite code yet — reload the app once and try again.');return}
+  try{
+    await navigator.clipboard.writeText(link);
+    toast('Invite link copied ✓ — text or email it to your client');
+  }catch{
+    const inp=gi('inviteLinkInp');if(inp){inp.select();document.execCommand('copy');toast('Invite link copied ✓')}
+    else toast('Could not copy — select the link text manually');
+  }
+}
+async function saveProfileSettings(){
+  const name=gi('stName').value.trim();
+  const inj=gi('stInj')?gi('stInj').value.trim():undefined;
+  const equip=gi('stEquip')?gi('stEquip').value.trim():undefined;
+  PROFILE.full_name=name;
+  if(inj!==undefined)PROFILE.injuries=inj;
+  if(equip!==undefined)PROFILE.equipment_notes=equip;
+  if(!DEMO){
+    const patch={full_name:name};
+    if(inj!==undefined)patch.injuries=inj;
+    if(equip!==undefined)patch.equipment_notes=equip;
+    await sb.from('profiles').update(patch).eq('id',USER.id);
+  }
+  toast('Profile saved ✓');renderSB();
+}
+async function setUnits(u){
+  PROFILE.units=u;
+  if(!DEMO)await sb.from('profiles').update({units:u}).eq('id',USER.id);
+  toast(`Units set to ${u==='imperial'?'Imperial (lb/mi)':'Metric (kg/km)'}`);renderMain();
+}
+async function saveAKSettings(){
+  const v=gi('stAk').value.trim();
+  if(!v||v.startsWith('••')){toast('Enter a new key first — it currently shows •••• because one is already saved.');return}
+  setApiKey(v);
+  if(!DEMO&&PROFILE?.role==='trainer'){
+    try{await sb.from('app_config').upsert({id:1,ai_key:v},{onConflict:'id'});toast('API key saved ✓ — synced to every client automatically')}
+    catch(e){toast('Saved on this device, but could not sync to clients: '+e.message)}
+  }else{
+    toast('API key saved ✓');
+  }
+  renderMain();
+}
+
+/* ═══ AI PANEL (chat) ═══ */
+const QP=['How do I do a Romanian Deadlift?','What muscles does a squat work?','How much protein do I need?','What should I eat before training?','How long should I rest between sets?','My gym is busy, what can I swap leg press for?'];
+
+function aiPanel(){
+  return`<div class="card" style="height:560px;display:flex;flex-direction:column">
+    <div class="ct">⚡ FORGE AI — Training Assistant</div>
+    <div class="aiq">${QP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
+    <div class="aiwrap" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
+    <div class="airow">
+      <textarea class="ainp" id="aiinp" rows="2" placeholder="Ask about exercises, nutrition, recovery, or an exercise swap..."></textarea>
+      <button class="aisend" onclick="sendAI()">Send</button>
+    </div>
+  </div>`;
+}
+
+function attachAI(){
+  renderAIM();
+  const inp=gi('aiinp');
+  if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI()}});
+}
+
+function renderAIM(){
+  const c=gi('aim');if(!c)return;
+  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">FORGE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
+  if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">FORGE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
+  c.scrollTop=c.scrollHeight;
+}
+
+async function callClaude(messages,system,maxTokens=1000){
+  const k=apiKey();
+  if(!k)throw new Error('NO_KEY');
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:maxTokens,system,messages})});
+  const d=await r.json();
+  if(d.error)throw new Error(d.error.message||'AI error');
+  return d.content?.[0]?.text||'';
+}
+
+async function sendAI(preset){
+  const inp=gi('aiinp');const q=preset||(inp?inp.value.trim():'');
+  if(!q||aiLoad)return;if(inp)inp.value='';
+  AIMSG.push({role:'user',text:q});aiLoad=true;renderAIM();
+  if(!apiKey()){AIMSG.push({role:'bot',text:'Add your Anthropic API key in Settings to enable the assistant.'});aiLoad=false;renderAIM();return}
+  try{
+    const hist=AIMSG.map(m=>({role:m.role==='bot'?'assistant':'user',content:m.text}));
+    const injCtx=PROFILE?.injuries?` The client has noted these injuries/limitations: ${PROFILE.injuries}.`:'';
+    const text=await callClaude(hist,'You are FORGE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
+    AIMSG.push({role:'bot',text:text||'Sorry, try again!'});
+  }catch(e){AIMSG.push({role:'bot',text:e.message==='NO_KEY'?'Add your Anthropic API key in Settings to enable the assistant.':'Connection issue — please try again.'})}
+  aiLoad=false;renderAIM();
+}
+
+/* ═══ FOOD PANEL ═══ */
+function foodPanel(){
+  const mac=[{l:'Calories',v:1240,t:1850,u:'kcal',c:'#F59E0B'},{l:'Protein',v:98,t:145,u:'g',c:'#3B82F6'},{l:'Carbs',v:115,t:180,u:'g',c:'#22C55E'},{l:'Fat',v:42,t:65,u:'g',c:'#EF4444'}];
+  const meals=[{n:'Breakfast',i:'Oats 80g · Whey protein 30g · Banana',cal:420,p:35},{n:'Lunch',i:'Chicken breast 180g · Rice 120g · Broccoli',cal:520,p:45},{n:'Snack',i:'Greek yoghurt 150g · Blueberries',cal:180,p:18}];
+  return`<div class="card">
+    <div class="ct">Nutrition · Today</div>
+    <div class="mgrid">${mac.map(m=>`<div class="mc"><div class="mv">${m.v}<span style="font-size:11px;color:var(--muted)">${m.u}</span></div><div class="ml2">${m.l}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">/ ${m.t}${m.u}</div><div class="mbar"><div class="mbf" style="width:${Math.min(100,Math.round(m.v/m.t*100))}%;background:${m.c}"></div></div></div>`).join('')}</div>
+    <div class="g2" style="margin-bottom:14px">
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Remaining</div><div style="font-size:18px;font-weight:700;font-family:var(--df)">610 <span style="font-size:12px;color:var(--muted)">kcal</span></div></div>
+      <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Protein left</div><div style="font-size:18px;font-weight:700;font-family:var(--df)">47<span style="font-size:12px;color:var(--muted)">g</span></div></div>
+    </div>
+    <div class="ct" style="margin-bottom:10px">Today's Meals</div>
+    ${meals.map(m=>`<div class="mealc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text);text-transform:uppercase">${m.n}</div><div style="font-size:12px;color:var(--amber);font-weight:600">${m.cal} kcal · ${m.p}g protein</div></div><div style="font-size:12px;color:var(--muted)">${m.i}</div></div>`).join('')}
+    <button style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px" onclick="toast('Food logging — coming soon')">+ Log Food</button>
+  </div>`;
+}
+
+/* ═══ CHECK-IN PANEL ═══ */
+function ciPanel(){
+  if(ciDone)return`<div class="card" style="text-align:center;padding:60px"><div style="font-size:48px;margin-bottom:12px">✅</div><div style="font-family:var(--df);font-size:22px;font-weight:700;letter-spacing:2px;color:var(--text);margin-bottom:8px">CHECK-IN SUBMITTED</div><div style="font-size:13px;color:var(--muted)">Your coach will review your stats and photos shortly.</div><button onclick="ciDone=false;renderMain()" style="margin-top:20px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 16px;color:var(--muted);cursor:pointer;font-size:12px">Submit another</button></div>`;
+  const moods=[{e:'😩',l:'Rough'},{e:'😐',l:'Okay'},{e:'🙂',l:'Good'},{e:'😄',l:'Great'},{e:'🔥',l:'Fired up'}];
+  const wl=isImperial()?'Weight (lb)':'Weight (kg)';
+  return`<div class="card">
+    <div class="ct">📸 Weekly Check-In</div>
+    <div style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:10px">Body Stats</div>
+      <div class="g2">
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">${wl}</div><input class="fi" inputmode="decimal" placeholder="${isImperial()?'e.g. 151':'e.g. 68.5'}" value="${ciStats.weight}" oninput="ciStats.weight=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Waist (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 74" value="${ciStats.waist}" oninput="ciStats.waist=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Hips (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 96" value="${ciStats.hips}" oninput="ciStats.hips=this.value"></div>
+        <div><div style="font-size:11px;color:var(--muted);margin-bottom:4px">Chest (cm)</div><input class="fi" inputmode="decimal" placeholder="e.g. 88" value="${ciStats.chest}" oninput="ciStats.chest=this.value"></div>
+      </div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:10px">Progress Photos</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Tap a slot to take or upload a photo for your coach.</div>
+      <div class="pgrid">${['Front','Side','Back'].map((label,i)=>`<div class="pslot ${photos[i]?'filled':''}" onclick="gi('ciFile${i}').click()" style="${photos[i]?`background-image:url('${photos[i]}');background-size:cover;background-position:center`:''}">
+        ${photos[i]?`<button onclick="event.stopPropagation();removePhoto(${i})" style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,.6);border:none;color:#fff;width:22px;height:22px;border-radius:50%;cursor:pointer;font-size:12px">✕</button>`:`<div style="font-size:24px">+</div><div>${label}</div>`}
+        <input type="file" accept="image/*" capture="environment" id="ciFile${i}" style="display:none" onchange="onPhotoSelected(event,${i})">
+      </div>`).join('')}</div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:10px">How are you feeling?</div>
+      <div class="mrow">${moods.map((m,i)=>`<button class="mb ${mood===i?'sel':''}" onclick="setMd(${i})"><span class="me">${m.e}</span>${m.l}</button>`).join('')}</div>
+    </div>
+    <div style="margin-bottom:18px">
+      <div class="ct" style="margin-bottom:8px">Notes for your coach</div>
+      <textarea class="fi" rows="3" placeholder="How has the week been? Any issues, highlights, or questions?" style="resize:vertical" oninput="ciNotes=this.value">${ciNotes}</textarea>
+    </div>
+    <button class="btn-p" id="ciSubBtn" onclick="subCI()">Submit Check-In</button>
+  </div>`;
+}
+/* Resizes/compresses the photo client-side (max ~900px, JPEG ~72% quality)
+   before storing it as a data URL — keeps check-in rows a reasonable size
+   without needing a separate Supabase Storage bucket set up. */
+function onPhotoSelected(e,i){
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    const img=new Image();
+    img.onload=()=>{
+      const maxDim=900;let w=img.width,h=img.height;
+      if(w>=h&&w>maxDim){h=Math.round(h*maxDim/w);w=maxDim}
+      else if(h>w&&h>maxDim){w=Math.round(w*maxDim/h);h=maxDim}
+      const canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      photos[i]=canvas.toDataURL('image/jpeg',0.72);
+      renderMain();
+    };
+    img.onerror=()=>toast('Could not read that image — try another photo');
+    img.src=ev.target.result;
+  };
+  reader.readAsDataURL(file);
+  e.target.value='';
+}
+function removePhoto(i){photos[i]=null;renderMain()}
+function setMd(i){mood=i;renderMain()}
+async function subCI(){
+  const btn=gi('ciSubBtn');if(btn){btn.disabled=true;btn.textContent='Submitting…'}
+  const payload={
+    client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
+    weight_kg:ciStats.weight?dispToKg(+ciStats.weight):null,
+    waist_cm:ciStats.waist?+ciStats.waist:null,hips_cm:ciStats.hips?+ciStats.hips:null,chest_cm:ciStats.chest?+ciStats.chest:null,
+    mood,notes:ciNotes||null,photos:photos.filter(Boolean)
+  };
+  if(!DEMO){
+    try{await sb.from('checkins').insert(payload)}
+    catch(e){toast('Could not submit check-in: '+e.message);if(btn){btn.disabled=false;btn.textContent='Submit Check-In'}return}
+  }
+  ciDone=true;photos=[null,null,null];mood=null;ciStats={weight:'',waist:'',hips:'',chest:''};ciNotes='';
+  renderMain();toast('Check-in submitted! Your coach has been notified. ✓');
+}
+
+/* ═══ SET LOGGER — track-type aware (reps+weight / distance+time / time only /
+   reps only / sled level+distance), unit-aware display, writes back into the
+   workout's exercises array (and Supabase workout_logs when connected) ═══ */
+function findWorkoutById(id){
+  return MY_WORKOUTS.find(w=>w.id===id) || CLIENTS.flatMap(c=>c._workouts||[]).find(w=>w.id===id) || (SEL_WB_SOURCE&&SEL_WB_SOURCE.id===id?SEL_WB_SOURCE:null);
+}
+let SEL_WB_SOURCE=null; // whichever workout list the logger/builder is currently pointed at
+
+function openSL(workoutId,exIdx){
+  const wk=findWorkoutById(workoutId);if(!wk)return;
+  curEx={wk,idx:exIdx};
+  const ex=wk.exercises[exIdx];
+  const nSets=ex.s||1;
+  curSets=Array.from({length:nSets},(_,i)=>({
+    id:i+1,
+    reps:ex.reps??'',weight:kgToDisp(ex.weight_kg),
+    distance:mToDisp(ex.distance_m),time:ex.time_sec?secToMMSS(ex.time_sec):'',
+    level:ex.level??'',
+    done:false
+  }));
+  gi('slName').textContent=ex.n;
+  gi('slMeta').textContent=`${ex.musc||''} · ${exMetaLabel(ex)}`;
+  gi('slLast').innerHTML=lastTimeLabel(ex);
+  gi('slAi').style.display='none';renderSets();updSLBtn();gi('slOv').classList.add('open');
+}
+/* "Last time you did this: 80kg × 8 (5 days ago)" — pulled from EX_HISTORY,
+   built once per session from workout_logs. Purely informational; doesn't
+   touch the pre-filled target fields (those stay whatever the coach set). */
+function lastTimeLabel(ex){
+  const h=EX_HISTORY[ex.n];if(!h||!h.last)return '';
+  const l=h.last;let val='';
+  if(ex.track==='reps_weight'&&l.weight_kg!=null)val=`${kgToDisp(l.weight_kg)}${wUnit()} × ${l.reps??'?'}`;
+  else if(ex.track==='distance_time'&&l.distance_m!=null)val=`${mToDisp(l.distance_m)}${dUnit()}${l.time_sec?' in '+secToMMSS(l.time_sec):''}`;
+  else if(ex.track==='time_only'&&l.time_sec!=null)val=secToMMSS(l.time_sec);
+  else if(l.reps!=null)val=`${l.reps} reps`;
+  if(!val)return '';
+  const days=l.completed_at?Math.round((Date.now()-new Date(l.completed_at).getTime())/86400000):null;
+  const when=days==null?'':days<=0?' · today':days===1?' · 1 day ago':` · ${days} days ago`;
+  return `<span style="color:var(--amber)">📊 Last time:</span> ${val}${when}`;
+}
+
+function renderSets(){
+  const ex=curEx.wk.exercises[curEx.idx];
+  const track=ex.track||'reps_weight';
+  gi('slSets').innerHTML=curSets.map(s=>{
+    let fields='';
+    if(track==='reps_weight'){
+      fields=`<input class="ni wd" value="${s.weight}" ${s.done?'disabled':''} onchange="updSet(${s.id},'weight',this.value)" placeholder="${wUnit()}"><span class="sx">×</span><input class="ni wd" value="${s.reps}" ${s.done?'disabled':''} onchange="updSet(${s.id},'reps',this.value)" placeholder="reps">`;
+    }else if(track==='distance_time'){
+      fields=`<input class="ni wd" value="${s.distance}" ${s.done?'disabled':''} onchange="updSet(${s.id},'distance',this.value)" placeholder="${dUnit()}"><span class="sx">in</span><input class="ni wd" value="${s.time}" ${s.done?'disabled':''} onchange="updSet(${s.id},'time',this.value)" placeholder="mm:ss">`;
+    }else if(track==='time_only'){
+      fields=`<input class="ni" value="${s.time}" ${s.done?'disabled':''} onchange="updSet(${s.id},'time',this.value)" placeholder="mm:ss">`;
+    }else if(track==='level_distance'){
+      fields=`<input class="ni wd" value="${s.level}" ${s.done?'disabled':''} onchange="updSet(${s.id},'level',this.value)" placeholder="level"><span class="sx">·</span><input class="ni wd" value="${s.distance}" ${s.done?'disabled':''} onchange="updSet(${s.id},'distance',this.value)" placeholder="${dUnit()}">`;
+    }else{
+      fields=`<input class="ni" value="${s.reps}" ${s.done?'disabled':''} onchange="updSet(${s.id},'reps',this.value)" placeholder="reps">`;
+    }
+    return`<div class="sr ${s.done?'dset':'aset'}">
+      <div class="slbl">SET ${s.id}</div>
+      ${fields}
+      <button class="lb ${s.done?'conf':'idle'}" onclick="${s.done?'':`logSet(${s.id})`}">${s.done?'✓ Logged':'Log Set'}</button>
+    </div>`;
+  }).join('');
+}
+function updSet(id,f,v){const s=curSets.find(x=>x.id===id);if(s)s[f]=v}
+async function logSet(id){
+  const s=curSets.find(x=>x.id===id);if(!s)return;s.done=true;renderSets();updSLBtn();
+  if(!DEMO){
+    const wk=curEx.wk,ex=wk.exercises[curEx.idx];
+    try{
+      await sb.from('workout_logs').insert({
+        assigned_workout_id:wk.id,client_id:USER.id,exercise_index:curEx.idx,exercise_name:ex.n,set_number:id,
+        reps:s.reps?+s.reps:null,weight_kg:s.weight?dispToKg(+s.weight):null,
+        distance_m:s.distance?dispToM(+s.distance):null,time_sec:s.time?mmssToSec(s.time):null
+      });
+    }catch{}
+  }
+  checkAllDone();
+}
+function updSLBtn(){const d=curSets.filter(s=>s.done).length;gi('slDone').textContent=`${d}/${curSets.length} Sets — Mark Done`}
+async function checkAllDone(){
+  if(curSets.filter(s=>s.done).length<curSets.length)return;
+  gi('slAi').style.display='block';gi('slAiTxt').textContent='Analysing your session...';
+  if(!apiKey()){gi('slAiTxt').textContent='Add your Anthropic API key in Settings to get progressive overload suggestions.';return}
+  try{
+    const ex=curEx.wk.exercises[curEx.idx];
+    const summary=curSets.map(s=>ex.track==='reps_weight'?`Set ${s.id}: ${s.weight}${wUnit()} × ${s.reps}`:ex.track==='distance_time'?`Set ${s.id}: ${s.distance}${dUnit()} in ${s.time}`:`Set ${s.id}: ${s.reps||s.time||s.level}`).join(', ');
+    const text=await callClaude([{role:'user',content:`FORGE AI: client completed ${ex.n}: ${summary}. Give a 1-2 sentence progressive overload tip with specific numbers, plus one form cue. Direct, no fluff.`}],undefined,300);
+    gi('slAiTxt').textContent=text||'Great work — keep pushing next session!';
+  }catch{gi('slAiTxt').textContent='Solid session! Try adding a little more next time.'}
+}
+/* the single best set logged THIS session for a given exercise/track — used
+   to check against the all-time best in EX_HISTORY for a PB, independent of
+   whichever set happened to be logged last. */
+function bestFromSets(ex,sets){
+  const done=(sets||[]).filter(s=>s.done);if(!done.length)return null;
+  if(ex.track==='reps_weight'){const v=Math.max(...done.map(s=>s.weight?dispToKg(+s.weight):0));return v>0?{field:'weight_kg',value:v}:null}
+  if(ex.track==='distance_time'||ex.track==='level_distance'){const v=Math.max(...done.map(s=>s.distance?dispToM(+s.distance):0));return v>0?{field:'distance_m',value:v}:null}
+  if(ex.track==='time_only'){const v=Math.max(...done.map(s=>s.time?mmssToSec(s.time):0));return v>0?{field:'time_sec',value:v}:null}
+  const v=Math.max(...done.map(s=>s.reps?+s.reps:0));return v>0?{field:'reps',value:v}:null;
+}
+function fmtPBValue(field,value){
+  if(field==='weight_kg')return `${kgToDisp(value)}${wUnit()}`;
+  if(field==='distance_m')return `${mToDisp(value)}${dUnit()}`;
+  if(field==='time_sec')return secToMMSS(value);
+  return `${value} reps`;
+}
+async function closeSL(done){
+  if(done&&curEx){
+    const ex=curEx.wk.exercises[curEx.idx];
+    ex.done=curSets.every(s=>s.done)&&curSets.length>0;
+    // roll last-logged set values back into the exercise as the new target/actuals
+    const last=curSets.filter(s=>s.done).slice(-1)[0];
+    if(last){
+      if(ex.track==='reps_weight'){ex.reps=last.reps?+last.reps:ex.reps;ex.weight_kg=last.weight?dispToKg(+last.weight):ex.weight_kg}
+      else if(ex.track==='distance_time'){ex.distance_m=last.distance?dispToM(+last.distance):ex.distance_m;ex.time_sec=last.time?mmssToSec(last.time):ex.time_sec}
+      else if(ex.track==='time_only'){ex.time_sec=last.time?mmssToSec(last.time):ex.time_sec}
+      else if(ex.track==='level_distance'){ex.level=last.level?+last.level:ex.level;ex.distance_m=last.distance?dispToM(+last.distance):ex.distance_m}
+      else{ex.reps=last.reps?+last.reps:ex.reps}
+    }
+    const wk=curEx.wk;
+
+    // PB check — compare the best set logged this session against the
+    // all-time best from EX_HISTORY (built from workout_logs at load time)
+    if(ex.done){
+      const best=bestFromSets(ex,curSets);
+      const hist=EX_HISTORY[ex.n]=EX_HISTORY[ex.n]||{last:null,best:{}};
+      if(best){
+        const prev=hist.best[best.field];
+        if(prev!=null&&best.value>prev){
+          const pb={exercise:ex.n,field:best.field,value:best.value,prevValue:prev};
+          PB_BY_WK[wk.id]=PB_BY_WK[wk.id]||[];
+          PB_BY_WK[wk.id].push(pb);
+          hist.best[best.field]=best.value;
+          if(!DEMO){
+            try{await sb.from('achievements').insert({client_id:USER.id,coach_id:PROFILE?.coach_id||null,kind:'pb',exercise_name:pb.exercise,label:`New PB on ${pb.exercise}: ${fmtPBValue(pb.field,pb.value)}`,detail:pb})}catch{}
+          }
+        }else if(prev==null){
+          hist.best[best.field]=best.value; // first time ever logging this exercise — establishes the baseline, not a PB yet
+        }
+      }
+      hist.last={reps:ex.reps,weight_kg:ex.weight_kg,distance_m:ex.distance_m,time_sec:ex.time_sec,completed_at:new Date().toISOString()};
+    }
+
+    const allDone=wk.exercises.every(e=>e.done);
+    if(allDone)wk.status='done';
+    if(!DEMO){
+      try{await sb.from('assigned_workouts').update({exercises:wk.exercises,status:wk.status}).eq('id',wk.id)}catch{}
+    }
+    gi('slOv').classList.remove('open');curEx=null;
+    if(allDone){
+      const pbs=PB_BY_WK[wk.id]||[];delete PB_BY_WK[wk.id];
+      const milestone=await checkMilestone();
+      renderMain();
+      openWinModal(pbs,milestone);
+      return;
+    }
+  }
+  gi('slOv').classList.remove('open');curEx=null;renderMain();
+}
+
+/* Checks whether this just-completed workout pushed the client's all-time
+   completed-workout count onto one of the celebration milestones. */
+async function checkMilestone(){
+  if(DEMO){
+    const count=MY_WORKOUTS.filter(w=>w.status==='done').length;
+    return isMilestone(count)?{count}:null;
+  }
+  try{
+    const{count}=await sb.from('assigned_workouts').select('id',{count:'exact',head:true}).eq('client_id',USER.id).eq('status','done');
+    if(count!=null&&isMilestone(count)){
+      try{await sb.from('achievements').insert({client_id:USER.id,coach_id:PROFILE?.coach_id||null,kind:'milestone',label:`${count} workout${count===1?'':'s'} completed!`,detail:{count}})}catch{}
+      return{count};
+    }
+  }catch{}
+  return null;
+}
+
+/* Trophy celebration shown once per fully-completed workout — always shows
+   something ("workout complete"), and calls out any PBs / milestones. */
+function openWinModal(pbs,milestone){
+  const parts=[];
+  if(milestone)parts.push(`<div class="abox" style="margin-bottom:14px;text-align:center"><div style="font-size:36px">🎉</div><div style="font-family:var(--df);font-size:20px;font-weight:700;color:var(--amber);letter-spacing:1px;margin-top:4px">MILESTONE — ${milestone.count} WORKOUT${milestone.count===1?'':'S'} DONE</div></div>`);
+  if(pbs&&pbs.length){
+    parts.push(`<div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">🏆 New Personal Best${pbs.length>1?'s':''}</div>`);
+    pbs.forEach(p=>parts.push(`<div class="sr" style="border-color:rgba(245,158,11,.35)"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${p.exercise}</div><div style="font-size:11px;color:var(--muted)">Previous best: ${fmtPBValue(p.field,p.prevValue)}</div></div><div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--amber)">${fmtPBValue(p.field,p.value)}</div></div>`));
+  }
+  if(!(pbs&&pbs.length)&&!milestone)parts.push(`<p style="font-size:13px;color:var(--muted);text-align:center;padding:10px 0">Solid session — everything's logged and saved. Keep it up!</p>`);
+  gi('winBody').innerHTML=parts.join('');
+  gi('winOv').classList.add('open');
+}
+function closeWin(){gi('winOv').classList.remove('open')}
+function openSwapFromLogger(){
+  if(!curEx)return;
+  openSwap(curEx.wk,curEx.idx,'client');
+}
+
+/* ═══ WORKOUT BUILDER ═══ used by: client editing their own day, coach
+   editing/creating any client's day. WB holds the live-editing copy;
+   nothing is written back until Save. ═══ */
+function openWB(workout,origin,clientId){
+  WB=JSON.parse(JSON.stringify(workout));
+  if(!WB.id)WB.id=uid();
+  if(!WB.exercises)WB.exercises=[];
+  WB_ORIGIN=origin;
+  WB._clientId=clientId||workout.client_id||(VIEW==='client'?USER.id:null);
+  const isTemplate=origin==='template';
+  setWBMode(isTemplate?'template':'assigned');
+  gi('wbTitle').textContent=isTemplate?'Edit Catalog Workout':'Edit Workout';
+  gi('wbSub').textContent=isTemplate?'Changes apply to the catalog template — clients already assigned this workout keep their own copy.':(origin==='coach-day'?`Editing for ${(CLIENTS.find(c=>c.id===WB._clientId)||{}).name||'client'}`:'Editing your workout');
+  gi('wbSaveBtn').textContent=isTemplate?'Save to Catalog':'Save Workout';
+  gi('wbNameInp').value=WB.name||'';
+  gi('wbTypeInp').value=WB.type||'training';
+  gi('wbDateInp').value=WB.scheduled_date||WB.date||todayISO();
+  gi('wbPlanInp').value=WB.plan||'';
+  gi('wbDurInp').value=WB.dur||'';
+  gi('wbSearch').value='';gi('wbSearchRes').style.display='none';
+  renderWBList();
+  gi('wbOv').classList.add('open');
+}
+function setWBMode(mode){
+  const t=mode==='template';
+  gi('wbTypeWrap').style.display=t?'none':'block';
+  gi('wbPlanWrap').style.display=t?'block':'none';
+  gi('wbDateWrap').style.display=t?'none':'block';
+  gi('wbDurWrap').style.display=t?'block':'none';
+}
+function closeWB(){gi('wbOv').classList.remove('open');WB=null}
+
+function renderWBList(){
+  gi('wbList').innerHTML=WB.exercises.map((ex,i)=>wbRowHtml(ex,i)).join('')||`<p style="font-size:12px;color:var(--muted);padding:8px 0">No exercises yet — search below to add some.</p>`;
+}
+
+function wbRowHtml(ex,i){
+  const track=ex.track||'reps_weight';
+  let fields='';
+  if(track==='reps_weight'){
+    fields=`<div class="wbfld"><label>Sets</label><input class="fi" style="width:52px" value="${ex.s||1}" onchange="wbSet(${i},'s',+this.value||1)"></div>
+      <div class="wbfld"><label>Reps</label><input class="fi" style="width:60px" value="${ex.reps??''}" onchange="wbSet(${i},'reps',this.value?+this.value:null)"></div>
+      <div class="wbfld"><label>Weight (${wUnit()})</label><input class="fi" style="width:70px" value="${ex.weight_kg?kgToDisp(ex.weight_kg):''}" onchange="wbSet(${i},'weight_kg',this.value?dispToKg(+this.value):null)"></div>`;
+  }else if(track==='distance_time'){
+    fields=`<div class="wbfld"><label>Sets</label><input class="fi" style="width:52px" value="${ex.s||1}" onchange="wbSet(${i},'s',+this.value||1)"></div>
+      <div class="wbfld"><label>Distance (${dUnit()})</label><input class="fi" style="width:80px" value="${ex.distance_m?mToDisp(ex.distance_m):''}" onchange="wbSet(${i},'distance_m',this.value?dispToM(+this.value):null)"></div>
+      <div class="wbfld"><label>Time (mm:ss)</label><input class="fi" style="width:70px" value="${ex.time_sec?secToMMSS(ex.time_sec):''}" onchange="wbSet(${i},'time_sec',mmssToSec(this.value))"></div>`;
+  }else if(track==='time_only'){
+    fields=`<div class="wbfld"><label>Sets</label><input class="fi" style="width:52px" value="${ex.s||1}" onchange="wbSet(${i},'s',+this.value||1)"></div>
+      <div class="wbfld"><label>Time (mm:ss)</label><input class="fi" style="width:70px" value="${ex.time_sec?secToMMSS(ex.time_sec):''}" onchange="wbSet(${i},'time_sec',mmssToSec(this.value))"></div>`;
+  }else if(track==='level_distance'){
+    fields=`<div class="wbfld"><label>Sets</label><input class="fi" style="width:52px" value="${ex.s||1}" onchange="wbSet(${i},'s',+this.value||1)"></div>
+      <div class="wbfld"><label>Level</label><input class="fi" style="width:56px" value="${ex.level??''}" onchange="wbSet(${i},'level',this.value?+this.value:null)"></div>
+      <div class="wbfld"><label>Distance (${dUnit()})</label><input class="fi" style="width:80px" value="${ex.distance_m?mToDisp(ex.distance_m):''}" onchange="wbSet(${i},'distance_m',this.value?dispToM(+this.value):null)"></div>`;
+  }else{
+    fields=`<div class="wbfld"><label>Sets</label><input class="fi" style="width:52px" value="${ex.s||1}" onchange="wbSet(${i},'s',+this.value||1)"></div>
+      <div class="wbfld"><label>Reps</label><input class="fi" style="width:60px" value="${ex.reps??''}" onchange="wbSet(${i},'reps',this.value?+this.value:null)"></div>`;
+  }
+  return`<div class="wbrow ${ex.grp?'grp':''}">
+    <div class="wbhead">
+      <div><div class="wbname">${ex.n}${ex.grp?` <span style="color:var(--amber);font-size:10px">· superset ${ex.grp}</span>`:''}</div><div class="wbtag">${ex.musc||''} ${ex.equip?'· '+ex.equip:''}</div></div>
+      <div class="wbactions">
+        <button class="iconbtn" onclick="openSwap(WB,${i},'${WB_ORIGIN==='coach-day'?'coach':'client'}')">🔁 Swap (AI)</button>
+        <button class="iconbtn danger" onclick="wbRemove(${i})">✕ Remove</button>
+      </div>
+    </div>
+    <div class="wbfields">${fields}<div class="wbfld"><label>Rest</label><input class="fi" style="width:64px" value="${ex.rest||''}" onchange="wbSet(${i},'rest',this.value)"></div></div>
+  </div>`;
+}
+function wbSet(i,field,val){WB.exercises[i][field]=val}
+function wbRemove(i){WB.exercises.splice(i,1);renderWBList()}
+
+function renderExSearch(q){
+  const box=gi('wbSearchRes');
+  q=(q||'').trim().toLowerCase();
+  if(!q){box.style.display='none';box.innerHTML='';return}
+  const matches=EXLIB.filter(x=>x.name.toLowerCase().includes(q)).slice(0,20);
+  if(!matches.length){box.innerHTML=`<div class="exsr-item" style="color:var(--muted)">No matches — try a different name</div>`;box.style.display='block';return}
+  box.innerHTML=matches.map(x=>`<div class="exsr-item" onclick='wbAddEx(${JSON.stringify(x).replace(/'/g,"&apos;")})'><span>${x.name}</span><span class="exsr-tag">${x.musc} · ${x.equip}</span></div>`).join('');
+  box.style.display='block';
+}
+function wbAddEx(lib){
+  const defaults={s:3,reps:lib.track==='reps_weight'||lib.track==='reps_only'?10:null,weight_kg:null,distance_m:lib.track==='distance_time'?500:null,time_sec:lib.track==='time_only'?30:null,level:lib.track==='level_distance'?2:null,rest:'60s',grp:null,done:false};
+  WB.exercises.push({ex_id:lib.id,n:lib.name,cat:lib.cat,track:lib.track,musc:lib.musc,equip:lib.equip,...defaults});
+  gi('wbSearch').value='';gi('wbSearchRes').style.display='none';gi('wbSearchRes').innerHTML='';
+  renderWBList();
+  toast(`"${lib.name}" added`);
+}
+document.addEventListener('click',e=>{if(!e.target.closest('.exsearch-wrap'))  {const r=gi('wbSearchRes');if(r)r.style.display='none'}});
+
+/* turns a full logged exercise (numeric fields) back into the compact
+   display string ("r") that catalog templates store, so a template saved
+   from the builder round-trips cleanly through tplExToWkEx when later
+   assigned to a client. */
+function exToRStr(ex){
+  if(ex.track==='distance_time')return `${ex.distance_m?mToDisp(ex.distance_m)+dUnit():''}${ex.time_sec?' in '+secToMMSS(ex.time_sec):''}`.trim();
+  if(ex.track==='time_only')return ex.time_sec?secToMMSS(ex.time_sec):'';
+  if(ex.track==='reps_only')return String(ex.reps??'');
+  if(ex.track==='level_distance')return `${ex.level?'Level '+ex.level+' ':''}${ex.distance_m?mToDisp(ex.distance_m)+dUnit():''}`.trim();
+  return String(ex.reps??'');
+}
+
+async function saveWB(){
+  WB.name=gi('wbNameInp').value.trim()||'Workout';
+  if(WB_ORIGIN==='template'){
+    const planName=gi('wbPlanInp').value.trim()||'Custom Plan';
+    const dur=+gi('wbDurInp').value||(WB.exercises.length?Math.max(10,WB.exercises.length*6):0);
+    const tplObj={id:WB.id,name:WB.name,plan:planName,dur,
+      equip:[...new Set(WB.exercises.map(e=>e.equip).filter(Boolean))].join(' · '),
+      ex:WB.exercises.map(e=>({ex_id:e.ex_id,n:e.n,s:e.s||1,r:exToRStr(e),rest:e.rest||'',grp:e.grp||null}))};
+    const idx=TEMPLATES.findIndex(t=>t.id===tplObj.id);
+    if(idx>=0)TEMPLATES[idx]=tplObj;else TEMPLATES.push(tplObj);
+    if(!DEMO){
+      const{error}=await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,created_by:USER.id,is_global:true},{onConflict:'id'});
+      if(error){toast('Save failed: '+error.message);return}
+    }
+    toast('Saved to catalog ✓');closeWB();renderMain();return;
+  }
+  WB.type=gi('wbTypeInp').value;
+  WB.scheduled_date=gi('wbDateInp').value;
+  WB.dur=WB.exercises.length?Math.max(10,WB.exercises.length*6):0;
+  const clientId=WB._clientId;
+  if(DEMO){
+    let list = WB_ORIGIN==='coach-day' ? (CLIENTS.find(c=>c.id===clientId)||{})._workouts : MY_WORKOUTS;
+    if(!list){toast('Could not find that client');return}
+    const idx=list.findIndex(w=>w.id===WB.id);
+    if(idx>=0)list[idx]={...list[idx],...WB};else list.push({...WB,client_id:clientId,coach_id:PROFILE.id,status:'pending'});
+  }else{
+    const payload={id:WB.id,client_id:clientId,coach_id:VIEW==='trainer'?PROFILE.id:(PROFILE.coach_id||PROFILE.id),
+      scheduled_date:WB.scheduled_date,name:WB.name,type:WB.type,dur:WB.dur,exercises:WB.exercises,status:WB.status||'pending'};
+    const{error}=await sb.from('assigned_workouts').upsert(payload,{onConflict:'id'});
+    if(error){toast('Save failed: '+error.message);return}
+    if(WB_ORIGIN==='coach-day')await loadClientWorkouts(clientId);else await loadMyWorkouts();
+  }
+  toast(WB_ORIGIN==='coach-day'?'Saved ✓ — they\'ll see it next time they log in':'Workout saved ✓');
+  closeWB();
+  renderMain();
+}
+
+async function loadClientWorkouts(clientId){
+  const c=CLIENTS.find(x=>x.id===clientId);if(!c)return;
+  if(DEMO)return; // demo clients keep their in-memory _workouts array
+  try{
+    const start=weekStartISO(new Date());const end=addDaysISO(start,7);
+    const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',clientId).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
+    c._workouts=data||[];
+  }catch{c._workouts=c._workouts||[]}
+  try{
+    const{data:cis}=await sb.from('checkins').select('*').eq('client_id',clientId).order('submitted_at',{ascending:false}).limit(3);
+    c._checkins=cis||[];
+  }catch{c._checkins=c._checkins||[]}
+  try{
+    const{data:ach}=await sb.from('achievements').select('*').eq('client_id',clientId).order('created_at',{ascending:false}).limit(10);
+    c._achievements=ach||[];
+  }catch{c._achievements=c._achievements||[]}
+}
+
+/* ═══ AI EXERCISE SWAP — grounded to the real exercise library so the model
+   can only pick something that actually exists, never a hallucinated name.
+   Works both mid-session (Set Logger) and while building/editing a plan. ═══ */
+function openSwap(wk,idx,requestedBy){
+  const ex=wk.exercises[idx];
+  SWAP_CTX={wk,idx,requestedBy};SWAP_REASON='';SWAP_CHOICE=null;
+  gi('swapSub').textContent=`Currently: ${ex.n} (${ex.musc||'—'} · ${ex.equip||'—'})`;
+  document.querySelectorAll('#swapReasons .segb').forEach(b=>b.classList.remove('on'));
+  gi('swapNote').value='';gi('swapResult').innerHTML='';
+  gi('swapGoBtn').style.display='block';gi('swapGoBtn').textContent='Find a replacement →';gi('swapGoBtn').disabled=false;
+  gi('swapOv').classList.add('open');
+}
+function closeSwap(){gi('swapOv').classList.remove('open');SWAP_CTX=null}
+function setSwapReason(btn){
+  document.querySelectorAll('#swapReasons .segb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');SWAP_REASON=btn.dataset.r;
+}
+
+function swapCandidates(ex){
+  return EXLIB.filter(x=>x.musc===ex.musc && x.name!==ex.n).slice(0,40);
+}
+
+async function runAiSwap(){
+  if(!SWAP_CTX)return;
+  const{wk,idx}=SWAP_CTX;const ex=wk.exercises[idx];
+  const reason=SWAP_REASON||'Other';
+  const note=gi('swapNote').value.trim();
+  let candidates=swapCandidates(ex);
+  if(!candidates.length){gi('swapResult').innerHTML=`<div class="aerr show">No other exercises tagged "${ex.musc}" in the library yet — try adding one from Settings/Catalog first, or ask the AI chat directly.</div>`;return}
+  const btn=gi('swapGoBtn');btn.disabled=true;btn.textContent='Thinking…';
+  try{
+    if(!apiKey())throw new Error('NO_KEY');
+    const injCtx=PROFILE?.injuries?` Client injury notes: ${PROFILE.injuries}.`:'';
+    const prompt=`A client needs to replace the exercise "${ex.n}" (targets: ${ex.musc}, normally uses: ${ex.equip}).
+Reason for the swap: ${reason}${note?' — '+note:''}.${injCtx}
+Choose the SINGLE best replacement from this exact list (reply with ONLY the exact name, nothing else, no numbering, no explanation):
+${candidates.map(c=>`- ${c.name} (${c.equip})`).join('\n')}`;
+    const text=await callClaude([{role:'user',content:prompt}],'You are a knowledgeable strength & conditioning coach picking exercise substitutions. You must reply with only the exact exercise name from the provided list.',200);
+    const cleaned=text.trim().replace(/^[-•\d.\s]+/,'').split('\n')[0].trim();
+    let choice=candidates.find(c=>c.name.toLowerCase()===cleaned.toLowerCase())
+      || candidates.find(c=>cleaned.toLowerCase().includes(c.name.toLowerCase()))
+      || candidates.find(c=>c.name.toLowerCase().includes(cleaned.toLowerCase()));
+    if(!choice)choice=candidates[Math.floor(Math.random()*candidates.length)];
+    SWAP_CHOICE=choice;
+    gi('swapResult').innerHTML=`<div class="abox"><div class="ablbl">⚡ FORGE AI suggests</div><div class="abtxt"><strong>${choice.name}</strong><br><span style="color:var(--muted);font-size:12px">${choice.musc} · ${choice.equip} — still trains the same area, reason: ${reason}${note?' ('+note+')':''}.</span></div></div>`;
+    btn.textContent='Apply Swap ✓';btn.disabled=false;btn.onclick=applySwapChoice;
+  }catch(e){
+    // graceful fallback: pick the first matching candidate that also avoids the
+    // same equipment (useful for "busy gym" swaps) without needing the API
+    const fallback=candidates.find(c=>c.equip!==ex.equip)||candidates[0];
+    SWAP_CHOICE=fallback;
+    const msg=e.message==='NO_KEY'?'No Anthropic API key set — showing a same-muscle-group match instead (add a key in Settings for smarter picks).':'AI request failed — showing a same-muscle-group match instead.';
+    gi('swapResult').innerHTML=`<div class="aerr show">${msg}</div><div class="abox"><div class="ablbl">Suggested replacement</div><div class="abtxt"><strong>${fallback.name}</strong><br><span style="color:var(--muted);font-size:12px">${fallback.musc} · ${fallback.equip}</span></div></div>`;
+    btn.textContent='Apply Swap ✓';btn.disabled=false;btn.onclick=applySwapChoice;
+  }
+}
+
+async function applySwapChoice(){
+  if(!SWAP_CTX||!SWAP_CHOICE)return;
+  const{wk,idx,requestedBy}=SWAP_CTX;
+  const oldEx=wk.exercises[idx];
+  const lib=SWAP_CHOICE;
+  const newEx={ex_id:lib.id,n:lib.name,cat:lib.cat,track:lib.track,musc:lib.musc,equip:lib.equip,
+    s:oldEx.s||3,reps:lib.track==='reps_weight'||lib.track==='reps_only'?(oldEx.reps||10):null,
+    weight_kg:lib.track==='reps_weight'?null:null,
+    distance_m:lib.track==='distance_time'?(oldEx.distance_m||500):null,
+    time_sec:lib.track==='time_only'?(oldEx.time_sec||30):null,
+    level:lib.track==='level_distance'?(oldEx.level||2):null,
+    rest:oldEx.rest||'',grp:oldEx.grp||null,done:false,note:''};
+  wk.exercises[idx]=newEx;
+  if(!DEMO){
+    try{
+      await sb.from('exercise_swaps').insert({assigned_workout_id:wk.id,client_id:wk.client_id||USER.id,original_name:oldEx.n,new_name:lib.name,reason:SWAP_REASON+(gi('swapNote').value.trim()?' — '+gi('swapNote').value.trim():''),requested_by:requestedBy==='coach'?'coach':'client'});
+      await sb.from('assigned_workouts').update({exercises:wk.exercises}).eq('id',wk.id);
+    }catch{}
+  }
+  toast(`Swapped "${oldEx.n}" → "${lib.name}" ✓`);
+  closeSwap();
+  if(WB&&WB.exercises===wk.exercises){renderWBList()}
+  else if(curEx&&curEx.wk===wk){openSL(wk.id,idx)}
+  else{renderMain()}
+}
+
+/* ═══ TRAINER ═══ */
+function renderTrainer(){
+  // tabs bar is always rendered (same reasoning as renderClient) so Settings
+  // is reachable AND escapable on mobile, where the sidebar is hidden.
+  const tabs=`<div class="tabs">${[{id:'clients',l:'👥 Clients'},{id:'catalog',l:'📚 Catalog'},{id:'upload',l:'📄 Upload'},{id:'overview',l:'📊 Overview'},{id:'ai',l:'⚡ AI Tools'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ttab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  let body='';
+  if(ttab==='clients')body=rClients();
+  else if(ttab==='catalog')body=rCatalog();
+  else if(ttab==='upload')body=rUpload();
+  else if(ttab==='overview')body=rOverview();
+  else if(ttab==='ai'){body=rTrainerAI();setTimeout(attachAI,0)}
+  else if(ttab==='settings')body=settingsPanel();
+  gi('mc').innerHTML=tabs+body;
+}
+
+/* ── CLIENTS ── */
+function rClients(){
+  if(!CLIENTS.length){
+    return`<div class="card" style="text-align:center;padding:60px;color:var(--muted)">
+      <div style="font-size:36px;margin-bottom:12px">👥</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px">No clients yet</div>
+      <div style="font-size:13px;margin-bottom:16px">Share your invite code from Settings — clients enter it when they sign up and they'll appear here automatically.</div>
+      <button class="btn-g" onclick="setTab('settings')" style="display:inline-block">⚙️ Go to Settings</button>
+    </div>`;
+  }
+  const detail=SELCLIENT?rClientDetail(SELCLIENT):`<div class="card" style="text-align:center;padding:60px;color:var(--muted)"><div style="font-size:36px;margin-bottom:12px">👈</div><div style="font-size:13px">Select a client to view their profile and training plan</div></div>`;
+  return`<div class="g2" style="align-items:start">
+    <div>
+      <div class="ctr" style="margin-bottom:12px">
+        <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">Client Roster — ${CLIENTS.length} Clients</div>
+        <button class="iconbtn" onclick="refreshClients()">🔄 Refresh</button>
+      </div>
+      ${CLIENTS.map(c=>{const bc=c.status==='active'?'bok':c.status==='warning'?'bwn':'bbd';const bt=c.status==='active'?'On Track':c.status==='warning'?'At Risk':'Drop Off';return`<div class="cr ${SELCLIENT?.id===c.id?'sel':''}" onclick="selCl('${c.id}')">
+        ${av(c.ini,c.col,38)}
+        <div style="flex:1;min-width:0"><div class="cname">${c.name}</div><div class="cplan">${c.email||c.plan||''}</div></div>
+        <div class="cw"><div class="cwl"><span>This week</span><span>${c.sessDone||0}/${c.sessTotal||0} done</span></div><div class="ctrack"><div class="cfill" style="width:${c.comp}%;background:${c.comp>70?'#22C55E':c.comp>40?'#F59E0B':'#EF4444'}"></div></div></div>
+        <span class="badge ${bc}">${bt}</span>
+      </div>`}).join('')}
+    </div>
+    <div class="col">${detail}</div>
+  </div>`;
+}
+
+async function refreshClients(){
+  toast('Refreshing…');
+  await loadClientRoster();
+  if(SELCLIENT){SELCLIENT=CLIENTS.find(c=>c.id===SELCLIENT.id)||null;if(SELCLIENT)await loadClientWorkouts(SELCLIENT.id)}
+  renderMain();
+  toast(`Roster refreshed — ${CLIENTS.length} client${CLIENTS.length===1?'':'s'} ✓`);
+}
+
+async function selCl(id){
+  SELCLIENT=CLIENTS.find(c=>c.id===id)||null;
+  if(SELCLIENT)await loadClientWorkouts(id);
+  renderMain();
+}
+
+function rClientDetail(c){
+  const wks=(c._workouts||[]).slice().sort((a,b)=>a.scheduled_date<b.scheduled_date?-1:1);
+  const completed=wks.filter(w=>w.status==='done');
+  return`<div class="card">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">${av(c.ini,c.col,46)}<div><div style="font-family:var(--df);font-size:20px;font-weight:700;letter-spacing:1px">${c.name}</div><div style="font-size:12px;color:var(--muted)">${c.email||''}</div></div></div>
+    <div class="g4" style="margin-bottom:14px">${[{l:'This Week',v:(c.sessDone||0)+'/'+(c.sessTotal||0)},{l:'Compliance',v:c.comp+'%'},{l:'Units',v:(c.units==='imperial'?'lb/mi':'kg/km')},{l:'Completed',v:String(completed.length)}].map(s=>`<div class="smi"><div class="sv" style="font-size:22px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="openPB('${c.id}')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">📋 Edit Weekly Plan</button>
+      <button onclick="openCI2('${c.id}')" class="btn-g" style="font-size:12px;padding:8px 14px">📸 Add Check-In</button>
+    </div>
+  </div>
+  <div class="card csm">
+    <div class="ctr"><div class="ct" style="margin-bottom:0">This Week's Workouts</div><button class="iconbtn" onclick="refreshClients()">🔄 Refresh</button></div>
+    ${wks.length?wks.map(w=>{
+      const done=w.status==='done';
+      return`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);${done?'opacity:.85':''}">
+      <div style="display:flex;align-items:center;gap:10px;min-width:0">
+        <span style="font-size:16px;flex-shrink:0">${done?'✅':w.type==='rest'?'🛌':w.type==='checkin'?'📸':'⏳'}</span>
+        <div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text)">${w.name}</div><div style="font-size:11px;color:${done?'var(--green)':'var(--muted)'}">${w.scheduled_date} · ${(w.exercises||[]).length} exercises${done?' · Completed':' · Pending'}</div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="iconbtn" onclick='openWB(${JSON.stringify(w).replace(/'/g,"&apos;")},"coach-day","${c.id}")'>✏️ Edit</button>
+        <button class="iconbtn danger" onclick="deleteAssignedWorkout('${w.id}','${c.id}')">🗑</button>
+      </div>
+    </div>`}).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts scheduled yet — use Edit Weekly Plan to build one.</p>`}
+  </div>
+  <div class="card csm">
+    <div class="ct">📝 Notes</div>
+    ${[{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
+  </div>
+  ${(c._achievements&&c._achievements.length)?`<div class="card csm">
+    <div class="ct">🏆 Achievements</div>
+    ${c._achievements.map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:16px;flex-shrink:0">${a.kind==='milestone'?'🎉':'🏆'}</span>
+      <div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">${a.label}</div><div style="font-size:10px;color:var(--muted)">${a.created_at?new Date(a.created_at).toLocaleDateString('en-GB'):''}</div></div>
+    </div>`).join('')}
+  </div>`:''}
+  ${(c._checkins&&c._checkins.length)?`<div class="card csm">
+    <div class="ct">📸 Recent Check-Ins</div>
+    ${c._checkins.map(ci=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px"><span>${ci.submitted_at?new Date(ci.submitted_at).toLocaleDateString('en-GB'):''}</span>${ci.mood!=null?`<span style="font-size:16px">${['😩','😐','🙂','😄','🔥'][ci.mood]||''}</span>`:''}</div>
+      <div style="font-size:12px;color:var(--text)">${[ci.weight_kg?`Weight: ${kgToDisp(ci.weight_kg)}${wUnit()}`:'',ci.waist_cm?`Waist: ${ci.waist_cm}cm`:'',ci.hips_cm?`Hips: ${ci.hips_cm}cm`:'',ci.chest_cm?`Chest: ${ci.chest_cm}cm`:''].filter(Boolean).join(' · ')||'No stats logged'}</div>
+      ${ci.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">"${ci.notes}"</div>`:''}
+      ${(ci.photos&&ci.photos.length)?`<div style="display:flex;gap:6px;margin-top:6px">${ci.photos.map(p=>`<img src="${p}" style="width:48px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">`).join('')}</div>`:''}
+    </div>`).join('')}
+  </div>`:''}`;
+}
+
+/* ── CATALOG ── */
+function rCatalog(){
+  const plans=[...new Set(TEMPLATES.map(w=>w.plan))];
+  return`<div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div><div style="font-family:var(--df);font-size:18px;font-weight:700;letter-spacing:1px;color:var(--text)">Workout Catalog</div><div style="font-size:12px;color:var(--muted);margin-top:2px">${TEMPLATES.length} workout templates from ${plans.length} training plans · ${EXLIB.length} exercises in your library</div></div>
+      <div style="display:flex;gap:8px">
+        <button onclick="newPlan()" class="btn-g" style="font-size:12px;padding:8px 14px">+ New Plan</button>
+        <button onclick="setTab('upload')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">+ Upload PDF</button>
+      </div>
+    </div>
+    ${plans.length?plans.map(plan=>{const wks=TEMPLATES.filter(w=>w.plan===plan);return`<div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:12px;font-weight:700;letter-spacing:1.5px;color:var(--amber);text-transform:uppercase">📋 ${plan}</div>
+        <button class="iconbtn" onclick="newTemplateInPlan('${plan.replace(/'/g,"\\'")}')">+ Add Workout</button>
+      </div>
+      ${wks.map(w=>`<div class="catpl">
+        <div class="catph" onclick="togCat('${w.id}')">
+          <div><div class="catpn">${w.name}</div><div class="catpm">~${w.dur||'?'} min · ${w.ex.length} exercises · ${w.equip||'—'}</div></div>
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <button onclick="event.stopPropagation();assignTemplate('${w.id}')" style="background:var(--ag);border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:4px 10px;color:var(--amber);font-size:11px;font-weight:700;cursor:pointer">Use for a client</button>
+            <button class="iconbtn" onclick="event.stopPropagation();editTemplate('${w.id}')">✏️</button>
+            <button class="iconbtn danger" onclick="event.stopPropagation();removeTemplate('${w.id}')">✕</button>
+            <span style="color:var(--muted);font-size:14px">${catExp[w.id]?'▲':'▼'}</span>
+          </div>
+        </div>
+        ${catExp[w.id]?`<div class="catex">${w.ex.map(e=>`<div class="cex"><div class="cexn">${e.n}</div><div class="cexd">${e.s} × ${e.r}${e.rest?` · Rest ${e.rest}`:''}</div></div>`).join('')||'<p style="font-size:12px;color:var(--muted);padding:6px 0">No exercises yet — tap ✏️ to add some.</p>'}</div>`:''}
+      </div>`).join('')}
+    </div>`}).join(''):`<div class="card" style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:13px">No plans yet — click "+ New Plan" to build your first one.</div></div>`}
+  </div>`;
+}
+function togCat(id){catExp[id]=!catExp[id];renderMain()}
+function assignTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  if(!CLIENTS.length){toast('Add a client first');return}
+  const clientId=SELCLIENT?SELCLIENT.id:CLIENTS[0].id;
+  openWB({id:uid(),name:t.name,type:'training',scheduled_date:todayISO(),dur:t.dur,exercises:t.ex.map(tplExToWkEx)},'coach-day',clientId);
+  toast(`Loaded "${t.name}" — pick the date and save to assign it`);
+}
+/* ── CATALOG / PLAN EDITOR — create brand new plans & workouts, or open any
+   existing catalog workout and add/remove/edit its exercises. Fully separate
+   from a client's assigned copy: editing the catalog never touches workouts
+   already handed out (those are independent snapshots). ── */
+function newPlan(){
+  const name=(prompt('Name this new plan (e.g. "Fat Loss Phase 1"):')||'').trim();
+  if(!name)return;
+  openWB({id:uid(),name:'Day 1',plan:name,dur:0,exercises:[]},'template');
+}
+function newTemplateInPlan(planName){
+  openWB({id:uid(),name:'New Workout',plan:planName||'',dur:0,exercises:[]},'template');
+}
+function editTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  openWB({id:t.id,name:t.name,plan:t.plan,dur:t.dur,exercises:(t.ex||[]).map(tplExToWkEx)},'template');
+}
+async function removeTemplate(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  if(!confirm(`Remove "${t.name}" from the catalog? Clients already assigned this workout keep their own copy.`))return;
+  TEMPLATES=TEMPLATES.filter(x=>x.id!==id);
+  if(!DEMO){try{await sb.from('workout_templates').delete().eq('id',id)}catch(e){toast('Delete failed: '+e.message)}}
+  renderMain();toast('Removed from catalog');
+}
+
+/* ── UPLOAD ── */
+function rUpload(){
+  return`<div class="col">
+    <div class="card">
+      <div class="ct">📄 Upload Training Plans (PDF)</div>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Upload PDF training plans. FORGE AI reads the PDF, extracts exercises/sets/reps/rest, and adds them to your catalog (and to Supabase, if connected) automatically.</p>
+      <div class="uz" id="uz" onclick="gi('pdfInp').click()" ondragover="dov(event)" ondrop="drop(event)" ondragleave="this.classList.remove('drag')">
+        <div style="font-size:36px;margin-bottom:10px">📄</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Drop PDF files here, or click to browse</div>
+        <div style="font-size:12px;color:var(--muted)">Supports any PDF training plan · Multiple files at once</div>
+      </div>
+      <input type="file" id="pdfInp" accept=".pdf" multiple style="display:none" onchange="handleFiles(event)">
+      <div id="uprog" class="uprog">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:13px;font-weight:600;color:var(--text)" id="ufn"></div>
+          <div style="font-size:12px;color:var(--muted)" id="ust"></div>
+        </div>
+        <div class="pbar"><div class="pfill" id="pf" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:8px" id="udet"></div>
+      </div>
+    </div>
+    ${uploadedPDFs.length?`<div class="card"><div class="ct">Recently Uploaded</div>${uploadedPDFs.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:20px">📄</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.wks} workouts extracted · ${f.date}</div></div><span class="badge bok">✓ Imported</span></div>`).join('')}</div>`:''}
+    <div class="card csm">
+      <div class="ct">How it works</div>
+      ${[{n:'1',t:'Upload your PDF',d:'Drag and drop any PDF — TrainHeroic, TrueCoach, custom spreadsheets, anything.'},{n:'2',t:'FORGE AI reads it',d:'Claude AI extracts every exercise, set, rep scheme, rest period, and coaching note.'},{n:'3',t:'Added to catalog instantly',d:'Extracted workouts appear in your catalog and exercise library. Edit any details before assigning.'},{n:'4',t:'Assign to clients',d:"Pick any workout from the catalog and add it to a client's weekly plan."}].map(s=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--ag);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-weight:700;font-size:12px;color:var(--amber);flex-shrink:0">${s.n}</div><div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${s.t}</div><div style="font-size:12px;color:var(--muted)">${s.d}</div></div></div>`).join('')}
+    </div>
+  </div>`;
+}
+
+function dov(e){e.preventDefault();e.currentTarget.classList.add('drag')}
+function drop(e){e.preventDefault();e.currentTarget.classList.remove('drag');const files=Array.from(e.dataTransfer.files).filter(f=>f.type==='application/pdf');if(files.length)procPDFs(files);else toast('Please drop PDF files only')}
+function handleFiles(e){const files=Array.from(e.target.files);if(files.length)procPDFs(files)}
+
+async function procPDFs(files){
+  const prog=gi('uprog');prog.classList.add('show');
+  for(const file of files){
+    gi('ufn').textContent=file.name;gi('ust').textContent='Reading…';gi('pf').style.width='20%';gi('udet').textContent='Sending to FORGE AI for extraction…';
+    if(!apiKey()){gi('ust').textContent='No API key';gi('udet').textContent='Add your Anthropic API key in Settings to enable PDF extraction.';gi('pf').style.width='100%';uploadedPDFs.unshift({name:file.name,wks:0,date:new Date().toLocaleDateString('en-GB')});toast(`"${file.name}" uploaded — add API key for AI extraction`);await new Promise(r=>setTimeout(r,1500));renderMain();return}
+    try{
+      const b64=await f2b64(file);gi('pf').style.width='40%';gi('ust').textContent='Extracting…';
+      const k=apiKey();
+      const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-beta':'pdfs-2024-09-25','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`Extract all workout sessions from this PDF. Return ONLY a JSON array of objects, each with: name, plan (programme name), duration (mins, number), category (strength/cardio/core/mobility), equipment (string), exercises (array of {n:name, s:sets number, r:reps or distance/time string, rest:string}). Raw JSON only.`}]}]})});
+      gi('pf').style.width='70%';gi('ust').textContent='Adding to catalog…';
+      const d=await r.json();const raw=d.content?.[0]?.text||'[]';
+      let extracted=[];try{extracted=JSON.parse(raw.replace(/```json|```/g,'').trim())}catch{extracted=[]}
+      for(const w of extracted){
+        const tplId='u_'+uid();
+        const exList=(w.exercises||[]).map(e=>{
+          let lib=findExByName(e.n||e.name)||classifyByName(e.n||e.name||'Exercise');
+          if(!lib.id){ // brand-new exercise discovered in this PDF — add it to the library
+            lib={id:'ux_'+uid(),name:e.n||e.name,cat:lib.cat,musc:lib.musc,equip:lib.equip,track:lib.track};
+            EXLIB.push(lib);
+            if(!DEMO)sb.from('exercise_library').insert({id:lib.id,name:lib.name,category:lib.cat,muscle_group:lib.musc,equipment:lib.equip,tracking_type:lib.track,created_by:USER.id}).then(()=>{}).catch(()=>{});
+          }
+          return{ex_id:lib.id,n:lib.name,s:e.s||e.sets||3,r:e.r||e.reps||'10',rest:e.rest||''};
+        });
+        TEMPLATES.push({id:tplId,name:w.name||'Unnamed Workout',plan:w.plan||file.name.replace('.pdf',''),dur:w.duration||60,equip:w.equipment||'',ex:exList});
+        if(!DEMO)sb.from('workout_templates').insert({id:tplId,name:w.name||'Unnamed Workout',plan:w.plan||file.name.replace('.pdf',''),source_client:PROFILE.full_name,dur:w.duration||60,equip:w.equipment||'',exercises:exList,created_by:USER.id,is_global:true}).then(()=>{}).catch(()=>{});
+      }
+      uploadedPDFs.unshift({name:file.name,wks:extracted.length,date:new Date().toLocaleDateString('en-GB')});
+      gi('pf').style.width='100%';gi('ust').textContent='Done!';gi('udet').textContent=`${extracted.length} workouts extracted and added to your catalog.`;
+      toast(`✓ "${file.name}" — ${extracted.length} workouts added to catalog`);await new Promise(r=>setTimeout(r,1500));
+    }catch(err){gi('ust').textContent='Error';gi('udet').textContent='Could not extract workouts. Check your API key and try again.';toast('Extraction failed — check API key');await new Promise(r=>setTimeout(r,2000))}
+  }
+  renderMain();
+}
+
+function f2b64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=()=>rej(new Error('Read failed'));r.readAsDataURL(file)})}
+
+/* ── OVERVIEW ── */
+function rOverview(){
+  const active=CLIENTS.filter(c=>c.status==='active').length;
+  return`<div class="col">
+    <div class="g4">${[{l:'Total Clients',v:String(CLIENTS.length)},{l:'Active',v:String(active)},{l:'Templates',v:String(TEMPLATES.length)},{l:'Library Exercises',v:String(EXLIB.length)}].map(s=>`<div class="smi"><div class="sv" style="font-size:26px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
+    <div class="card"><div class="ct">Quick Actions</div><div class="g2" style="gap:8px">${[{i:'👥',l:'View clients',fn:"setTab('clients')"},{i:'📚',l:'Browse catalog',fn:"setTab('catalog')"},{i:'📄',l:'Upload a PDF plan',fn:"setTab('upload')"},{i:'⚙️',l:'Share invite code',fn:"setTab('settings')"}].map(a=>`<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s2);border-radius:8px;cursor:pointer;font-size:13px;color:var(--text);border:1px solid var(--border)" onclick="${a.fn}"><span>${a.i}</span>${a.l}</div>`).join('')}</div></div>
+  </div>`;
+}
+
+/* ── TRAINER AI ── */
+const TQP=['Write a fat loss programme for intermediate','Progressive overload explained simply','Best Hyrox training split 4 days/week','How to structure a deload week','Wall ball coaching cues','Sled push technique tips'];
+function rTrainerAI(){
+  return`<div class="g2" style="align-items:start">
+    <div class="card" style="height:560px;display:flex;flex-direction:column">
+      <div class="ct">⚡ FORGE AI — Trainer Assistant</div>
+      <div class="aiq">${TQP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
+      <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
+      <div class="airow"><textarea class="ainp" id="aiinp" rows="2" placeholder="Ask about programming, exercise selection, clients..."></textarea><button class="aisend" onclick="sendAI()">Send</button></div>
+    </div>
+    <div class="col">
+      <div class="card">
+        <div class="ct">⚡ AI Workout Generator</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">Describe client goals and FORGE AI builds a complete training plan.</p>
+        <textarea class="fi" id="agGoals" rows="4" placeholder="e.g. Female, intermediate, fat loss, 3x/week, full gym, 50 min, preparing for Hyrox..." style="margin-bottom:10px;resize:vertical"></textarea>
+        <button class="btn-p" onclick="genPlan()">Generate Workout Plan</button>
+        <div id="agRes" style="display:none;margin-top:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;max-height:280px;overflow-y:auto"></div>
+      </div>
+      <div class="card csm">
+        <div class="ct">🔑 Anthropic API Key</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px">Required for AI chat, exercise swaps, PDF extraction, and plan generation.</p>
+        <button class="btn-g" style="width:100%" onclick="setTab('settings')">Manage in Settings →</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+async function genPlan(){
+  const goals=gi('agGoals')?.value?.trim();if(!goals){toast('Describe client goals first');return}
+  const res=gi('agRes');res.style.display='block';res.textContent='Generating…';
+  if(!apiKey()){res.textContent='Add your Anthropic API key in Settings.';return}
+  try{
+    const text=await callClaude([{role:'user',content:`Expert personal trainer. Create a detailed weekly training plan for: "${goals}". Include weekly structure (Mon-Sun), 3-5 exercises per session with sets/reps/rest, and coaching notes. Format clearly.`}],undefined,1500);
+    res.textContent=text||'Could not generate — try again.';
+  }catch{res.textContent='Error — check your API key in Settings.'}
+}
+
+/* ═══ WEEKLY PLAN BUILDER (per client) ═══ each day is a real assigned_workout
+   (or empty = rest). Clicking a day opens the Workout Builder for that date. */
+let pbSelDay=null,pbPlanFilter=null;
+function openPB(cid){
+  const c=CLIENTS.find(x=>x.id===cid);if(!c)return;SELCLIENT=c;
+  gi('pbCl').textContent=c.name;
+  pbClientId=cid;pbWeekStart=weekStartISO(new Date());pbSelDay=null;
+  pbPlanFilter=[...new Set(TEMPLATES.map(t=>t.plan))][0]||null;
+  loadClientWorkouts(cid).then(renderPB);
+  renderPB();
+  gi('pbOv').classList.add('open');
+}
+
+function pbSelectDay(i){pbSelDay=pbSelDay===i?null:i;renderPB()}
+function pbSetPlanFilter(p){pbPlanFilter=p;renderPB()}
+function pbDragStart(e,tplId){e.dataTransfer.setData('text/plain',tplId);e.dataTransfer.effectAllowed='copy'}
+function pbAllowDrop(e){e.preventDefault();e.dataTransfer.dropEffect='copy'}
+function pbDrop(e,dayIdx){e.preventDefault();const tplId=e.dataTransfer.getData('text/plain');if(tplId)assignTemplateToDay(tplId,dayIdx)}
+
+/* Assigns a catalog template onto a specific day — via drag-and-drop (desktop)
+   or tap-to-select-day-then-tap-workout (touch/mobile). Always ADDS a new
+   session rather than overwriting whatever's already on that day, so a
+   client can have e.g. a strength session AND a cardio session on the same
+   day. Writes straight to Supabase and surfaces the real error if the save
+   fails (previously a bad id format made new-workout saves fail silently —
+   see uid() — so this now always checks {error} explicitly instead of
+   trusting that "no exception thrown" meant "saved"). */
+async function assignTemplateToDay(tplId,dayIdx){
+  const t=TEMPLATES.find(x=>x.id===tplId);if(!t)return;
+  const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
+  const iso=addDaysISO(pbWeekStart,dayIdx);
+  c._workouts=c._workouts||[];
+  const wk={id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:iso,name:t.name,type:'training',dur:t.dur,exercises:t.ex.map(tplExToWkEx),status:'pending'};
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').insert({id:wk.id,client_id:wk.client_id,coach_id:wk.coach_id,scheduled_date:wk.scheduled_date,name:wk.name,type:wk.type,dur:wk.dur,exercises:wk.exercises,status:wk.status});
+    if(error){toast('Could not save that assignment: '+error.message);return}
+  }
+  c._workouts.push(wk);
+  toast(`"${t.name}" saved to ${c.name}'s ${DEMO_DAYS[dayIdx]} ✓ — they'll see it next time they log in`);
+  pbSelDay=null;renderPB();
+}
+
+/* Removes one assigned session (coach view). Doesn't touch the catalog. */
+async function deleteAssignedWorkout(wkId,clientId){
+  if(!confirm('Remove this workout from their plan?'))return;
+  const c=CLIENTS.find(x=>x.id===clientId);
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').delete().eq('id',wkId);
+    if(error){toast('Could not remove: '+error.message);return}
+  }
+  if(c)c._workouts=(c._workouts||[]).filter(w=>w.id!==wkId);
+  renderMain();toast('Removed ✓');
+}
+
+function renderPB(){
+  const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
+  const wks=c._workouts||[];
+  const plans=[...new Set(TEMPLATES.map(t=>t.plan))];
+  if(!pbPlanFilter||!plans.includes(pbPlanFilter))pbPlanFilter=plans[0]||null;
+  const shown=pbPlanFilter?TEMPLATES.filter(t=>t.plan===pbPlanFilter):TEMPLATES;
+  gi('pbCont').innerHTML=`
+    <div class="abox" style="margin-bottom:14px">
+      <div class="ablbl">⚡ AI Week Generator</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <input class="fi" id="pbGoals" placeholder="e.g. Fat loss, 3x/week, intermediate, 45 min, full gym..." style="flex:1;min-width:180px">
+        <button onclick="genPBPlan()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;height:40px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer;white-space:nowrap">Generate</button>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">1 · Pick a day ${pbSelDay!=null?`<span style="color:var(--amber)">(${DEMO_DAYS[pbSelDay]} selected — tap a workout below to add it, or drag one)</span>`:''}</div>
+    ${DEMO_DAYS.map((day,i)=>{
+      const iso=addDaysISO(pbWeekStart,i);
+      const dayWks=wks.filter(w=>w.scheduled_date===iso);
+      const sel=pbSelDay===i;
+      return`<div class="pdrow" style="align-items:flex-start;${sel?`border-color:var(--amber);background:var(--ag)`:''}" onclick="pbSelectDay(${i})" ondragover="pbAllowDrop(event)" ondrop="pbDrop(event,${i})">
+        <div class="pdlbl" style="padding-top:4px">${day}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+          ${dayWks.length?dayWks.map(wk=>{const c2=tc(wk.type);return`<div style="display:flex;align-items:center;gap:8px">
+            <div style="background:${c2}20;border:1px solid ${c2}30;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:600;color:${c2};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${wk.name}${wk.status==='done'?' ✅':''}</div>
+            <span style="font-size:10px;color:var(--muted);flex-shrink:0">${(wk.exercises||[]).length}ex · ~${wk.dur||0}m</span>
+            <button class="iconbtn" onclick='event.stopPropagation();openWB(${JSON.stringify(wk).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")'>✏️</button>
+            <button class="iconbtn danger" onclick="event.stopPropagation();deleteAssignedWorkout('${wk.id}','${pbClientId}').then(renderPB)">🗑</button>
+          </div>`}).join(''):`<div style="font-size:11px;color:var(--muted);padding-top:4px">${sel?'tap a workout below to add one →':'Rest / unscheduled — tap to select'}</div>`}
+        </div>
+        <button class="iconbtn" onclick='event.stopPropagation();openWB(${JSON.stringify({name:"Training",type:"training",scheduled_date:iso,exercises:[]}).replace(/'/g,"&apos;")},"coach-day","${pbClientId}")' title="Add a custom workout to this day">+ ✏️</button>
+      </div>`;
+    }).join('')}
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase">2 · Drag or tap a workout to assign</div>
+      <button class="iconbtn" onclick="newTemplateInPlan(pbPlanFilter||'')">+ New Workout</button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      ${plans.map(p=>`<button class="segb ${pbPlanFilter===p?'on':''}" style="flex:0 0 auto;padding:6px 12px" onclick="pbSetPlanFilter('${p.replace(/'/g,"\\'")}')">${p}</button>`).join('')}
+    </div>
+    ${shown.length?shown.map(w=>`<div class="pdrow" draggable="true" ondragstart="pbDragStart(event,'${w.id}')" style="cursor:${pbSelDay!=null?'pointer':'grab'}" onclick="${pbSelDay!=null?`assignTemplateToDay('${w.id}',${pbSelDay})`:`toast('Select a day above first, or drag this onto a day')`}">
+        <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">${w.name}</div><div style="font-size:11px;color:var(--muted)">${w.plan} · ${w.ex.length} exercises · ~${w.dur||'?'} min</div></div>
+        <span style="color:var(--amber);font-weight:700;font-size:14px">${pbSelDay!=null?'+ Assign':'⠿ Drag'}</span>
+      </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts in this plan yet.</p>`}`;
+}
+
+async function genPBPlan(){
+  const goals=gi('pbGoals')?.value?.trim();if(!goals){toast('Describe goals first');return}
+  if(!apiKey()){toast('Add your Anthropic API key in Settings first');return}
+  toast('Generating plan…');
+  try{
+    const text=await callClaude([{role:'user',content:`7-day training plan. Goals: "${goals}". Return ONLY JSON array of 7 objects (Mon-Sun): day, type (training/rest/cardio/checkin), label (max 4 words). Raw JSON only.`}],undefined,600);
+    const p=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
+    c._workouts=c._workouts||[];
+    p.forEach((x,i)=>{
+      if(x.type==='rest'||x.type==='checkin')return;
+      const iso=addDaysISO(pbWeekStart,i);
+      const existingIdx=c._workouts.findIndex(w=>w.scheduled_date===iso);
+      const tpl=TEMPLATES[Math.floor(Math.random()*TEMPLATES.length)];
+      const newWk={id:existingIdx>=0?c._workouts[existingIdx].id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:iso,name:x.label||tpl.name,type:x.type||'training',dur:tpl.dur,exercises:tpl.ex.map(tplExToWkEx),status:'pending'};
+      if(existingIdx>=0)c._workouts[existingIdx]=newWk;else c._workouts.push(newWk);
+    });
+    if(!DEMO){
+      let failCount=0;
+      for(const w of c._workouts){
+        const{error}=await sb.from('assigned_workouts').upsert({id:w.id,client_id:w.client_id,coach_id:w.coach_id,scheduled_date:w.scheduled_date,name:w.name,type:w.type,dur:w.dur,exercises:w.exercises,status:w.status},{onConflict:'id'});
+        if(error)failCount++;
+      }
+      if(failCount){toast(`Generated, but ${failCount} day(s) failed to save — try again`);renderPB();return}
+    }
+    renderPB();toast('Week generated ✓ — tap any day to fine-tune it');
+  }catch{toast('Could not generate — try again')}
+}
+
+function closePB(){gi('pbOv').classList.remove('open');pbClientId=null;renderMain()}
+
+/* ═══ CHECK-IN SETUP (coach configuring what a client's check-in collects) ═══ */
+function openCI2(cid){
+  const c=CLIENTS.find(x=>x.id===cid)||SELCLIENT;
+  gi('ciCl').textContent=c?.name||'';
+  const allF=['Weight','Waist','Hips','Chest','Arms','Thighs','Neck','Body Fat %'];
+  const selF=['Weight','Waist','Hips'];
+  gi('ciCont').innerHTML=`
+    <div class="field"><label>Check-In Day</label><select class="fi" id="ciDay">${DEMO_DAYS.map(d=>`<option>${d}</option>`).join('')}</select></div>
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">Stats to Collect</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">${allF.map(f=>`<button onclick="togCIF(this)" style="padding:6px 12px;border-radius:8px;font-size:12px;font-weight:500;cursor:pointer;background:${selF.includes(f)?'var(--gd)':'var(--s2)'};color:${selF.includes(f)?'var(--green)':'var(--muted)'};border:1px solid ${selF.includes(f)?'rgba(34,197,94,.35)':'var(--border)'}">${f}</button>`).join('')}</div>
+    </div>
+    <div class="field" style="margin-bottom:14px"><label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;color:var(--text);text-transform:none;letter-spacing:0;font-weight:500"><input type="checkbox" id="ciPh" checked> Require progress photos (Front, Side, Back)</label></div>
+    <div class="field"><label>Message / Questions for client</label><textarea class="fi" id="ciMsg" rows="3" placeholder="e.g. How are energy levels? Sticking to nutrition plan?" style="resize:vertical"></textarea></div>`;
+  gi('ciOv').classList.add('open');
+}
+function togCIF(btn){
+  const on=btn.dataset.on==='1';
+  btn.dataset.on=on?'0':'1';
+  if(on){btn.style.background='var(--s2)';btn.style.color='var(--muted)';btn.style.borderColor='var(--border)'}
+  else{btn.style.background='var(--gd)';btn.style.color='var(--green)';btn.style.borderColor='rgba(34,197,94,.35)'}
+}
+function closeCI(){gi('ciOv').classList.remove('open')}
+function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'} ✓`)}
+
+/* ═══ BOOT ═══ */
+(async function boot(){
+  showAuthTab('login');
+  if(SUPABASE_URL&&SUPABASE_ANON_KEY){
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
+    const{data:{session}}=await sb.auth.getSession();
+    if(session&&session.user){USER=session.user;await loadProfile();return}
+    applyInviteFromURL();
+    gi('authScreen').classList.add('active');return;
+  }
+  const cfg=readCfg();
+  if(cfg){
+    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
+    const{data:{session}}=await sb.auth.getSession();
+    if(session&&session.user){USER=session.user;await loadProfile();return}
+    applyInviteFromURL();
+    gi('authScreen').classList.add('active');return;
+  }
+  gi('setupScreen').classList.add('active');
+})();
+</script>
+</body>
+</html>
