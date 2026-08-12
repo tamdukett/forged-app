@@ -18,9 +18,29 @@
   --blue:#2563EB;--purple:#7C3AED;--text:#16161D;--muted:#6B6B7D;
   --shadow:0 1px 2px rgba(20,20,30,.04),0 1px 8px rgba(20,20,30,.05);
   --df:'Barlow Condensed',sans-serif;--bf:'Inter',system-ui,sans-serif;
+  /* small accent-tint surfaces that used to be hardcoded light pastels —
+     pulled into variables so dark mode can redefine them instead of ending
+     up with a pale island (or, worse, near-white text on a pale bg) */
+  --hoverTint:#FFF8EA;--doneTint:#F0FDF4;--creamTint:#FFFBF2;
+  --aboxG1:#FFF8EA;--aboxG2:#FFFFFF;--aboxText:#7C4A03;
+  --mfpbG1:#EFF6FF;--mfpbG2:#FFFFFF;--mfpbBorder:#BFDBFE;
+  --warnBg:#FFF7ED;--warnText:#C2410C;
+}
+html.dark{
+  /* dark palette — same accent hues, re-tuned for a near-black surface so
+     nothing ends up light-text-on-light-tint or dark-text-on-dark-tint */
+  --bg:#0E0E13;--surface:#191922;--s2:#20202B;--border:#2C2C3A;--border2:#3D3D4E;
+  --amber:#F59E0B;--ag:rgba(245,158,11,0.16);--ad:#FCD34D;
+  --green:#22C55E;--gd:rgba(34,197,94,0.16);--red:#F87171;--rd:rgba(248,113,113,0.16);
+  --blue:#60A5FA;--purple:#A78BFA;--text:#F2F2F6;--muted:#9494A8;
+  --shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.3);
+  --hoverTint:rgba(245,158,11,0.12);--doneTint:rgba(34,197,94,0.12);--creamTint:rgba(245,158,11,0.08);
+  --aboxG1:rgba(245,158,11,0.14);--aboxG2:rgba(245,158,11,0.03);--aboxText:#FCD34D;
+  --mfpbG1:rgba(96,165,250,0.14);--mfpbG2:rgba(96,165,250,0.03);--mfpbBorder:rgba(96,165,250,0.35);
+  --warnBg:rgba(234,88,12,0.16);--warnText:#FB923C;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--bf);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+html,body{min-height:100vh;background:var(--bg);color:var(--text);font-family:var(--bf);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
 button,input,select,textarea{font-family:inherit}
 ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 /* reusable thumbnail tile — real photo when we have one, colored icon tile otherwise */
@@ -100,9 +120,15 @@ button,input,select,textarea{font-family:inherit}
 .g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
 
-/* WEEK CAL */
-.wcal{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:16px}
-.wday{border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);position:relative}
+/* WEEK CAL — horizontally scrollable strip (Mon->Sun, always left-to-right)
+   rather than a grid that wraps to multiple rows on narrow screens. Prev/Next
+   week buttons page the whole strip; swipe/scroll moves within the week. */
+.wcal-wrap{display:flex;align-items:center;gap:6px;margin-bottom:16px}
+.wcal-nav{background:var(--s2);border:1px solid var(--border);border-radius:50%;width:32px;height:32px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--text);cursor:pointer;transition:all .15s}
+.wcal-nav:hover{border-color:var(--amber);color:var(--amber)}
+.wcal{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x proximity;padding-bottom:2px;flex:1;min-width:0}
+.wcal::-webkit-scrollbar{height:5px}
+.wday{border-radius:10px;padding:10px 8px;text-align:center;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--surface);position:relative;flex:0 0 78px;scroll-snap-align:start}
 .wday:hover{border-color:var(--border2);background:var(--s2)}
 .wday.sel{border-color:var(--amber);background:var(--ag)}
 .wday-lbl{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:4px}
@@ -118,8 +144,8 @@ button,input,select,textarea{font-family:inherit}
 
 /* EXERCISES */
 .exr{display:flex;align-items:center;gap:12px;padding:13px;background:var(--s2);border-radius:10px;cursor:pointer;transition:all .15s;border:1px solid transparent;margin-bottom:8px}
-.exr:hover{border-color:rgba(245,158,11,.35);background:#FFF8EA}
-.exr.done{border-color:rgba(22,163,74,.3);background:#F0FDF4}
+.exr:hover{border-color:rgba(245,158,11,.35);background:var(--hoverTint)}
+.exr.done{border-color:rgba(22,163,74,.3);background:var(--doneTint)}
 .exnum{font-family:var(--df);font-size:13px;font-weight:700;color:var(--muted);width:20px;text-align:center;flex-shrink:0}
 .exname{font-size:13px;font-weight:600;color:var(--text)}
 .exmeta{font-size:11px;color:var(--muted);margin-top:2px}
@@ -136,9 +162,9 @@ button,input,select,textarea{font-family:inherit}
 .ddn{font-size:11px;font-weight:600;color:var(--red);margin-top:3px}
 
 /* AI */
-.abox{background:linear-gradient(135deg,#FFF8EA,#FFFFFF);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px 16px;margin-top:12px}
+.abox{background:linear-gradient(135deg,var(--aboxG1),var(--aboxG2));border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:14px 16px;margin-top:12px}
 .ablbl{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--ad);text-transform:uppercase;margin-bottom:6px}
-.abtxt{font-size:13px;color:#7C4A03;line-height:1.6}
+.abtxt{font-size:13px;color:var(--aboxText);line-height:1.6}
 .aiwrap{display:flex;flex-direction:column;height:460px}
 .aimsg{max-width:82%;padding:11px 13px;border-radius:10px;font-size:13px;line-height:1.6}
 .aimsg.user{align-self:flex-end;background:var(--ag);border:1px solid rgba(245,158,11,.3);color:var(--text)}
@@ -160,8 +186,23 @@ button,input,select,textarea{font-family:inherit}
 .mbar{height:4px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
 .mbf{height:100%;border-radius:2px;transition:width .5s}
 .mealc{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:13px;margin-bottom:8px}
-.mfpb{display:flex;align-items:center;gap:12px;padding:13px;background:linear-gradient(135deg,#EFF6FF,#FFFFFF);border:1px solid #BFDBFE;border-radius:10px;margin-bottom:14px}
+.mfpb{display:flex;align-items:center;gap:12px;padding:13px;background:linear-gradient(135deg,var(--mfpbG1),var(--mfpbG2));border:1px solid var(--mfpbBorder);border-radius:10px;margin-bottom:14px}
 .mfpl{width:36px;height:36px;background:#2B6CB0;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;color:#fff;flex-shrink:0}
+/* REST TIMER — shown in the Set Logger after logging a set, counts down to
+   the exercise's prescribed rest, flashes + beeps when done */
+.rest-timer{display:flex;align-items:center;gap:14px;background:var(--ag);border:1px solid rgba(245,158,11,.35);border-radius:12px;padding:12px 16px;margin:12px 0}
+.rest-timer.done{background:var(--gd);border-color:rgba(22,163,74,.4);animation:restpulse 1s ease-in-out 2}
+@keyframes restpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.015)}}
+.rest-time{font-family:var(--df);font-size:26px;font-weight:700;color:var(--amber);letter-spacing:1px;min-width:64px;text-align:center}
+.rest-timer.done .rest-time{color:var(--green)}
+.rest-label{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+/* set count stepper — "+ Add Set" / remove-last-set, both in the live Set
+   Logger (mid-workout) and the coach/client Workout Builder (pre-assignment) */
+.setstep{display:flex;align-items:center;gap:10px;margin-top:10px}
+.setstep-btn{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;color:var(--text);cursor:pointer;transition:all .15s}
+.setstep-btn:hover{border-color:var(--amber);color:var(--amber)}
+.setstep-btn:disabled{opacity:.4;cursor:not-allowed}
+.setstep-btn.danger:hover{border-color:var(--red);color:var(--red)}
 
 /* CHECKIN */
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
@@ -184,7 +225,7 @@ button,input,select,textarea{font-family:inherit}
 .msub{font-size:12px;color:var(--muted);margin-bottom:20px}
 .mact{display:flex;gap:10px;padding:16px 26px 22px;border-top:1px solid var(--border);flex-shrink:0}
 .sr{display:flex;align-items:center;gap:10px;padding:11px;background:var(--s2);border-radius:8px;border:1px solid var(--border);margin-bottom:8px;transition:border .15s}
-.sr.aset{border-color:rgba(245,158,11,.35)}.sr.dset{border-color:rgba(22,163,74,.3);background:#F0FDF4}
+.sr.aset{border-color:rgba(245,158,11,.35)}.sr.dset{border-color:rgba(22,163,74,.3);background:var(--doneTint)}
 .slbl{font-family:var(--df);font-size:12px;font-weight:700;color:var(--muted);width:38px}
 .ni{background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:7px 10px;width:68px;color:var(--text);font-size:15px;font-weight:600;font-family:var(--df);text-align:center;outline:none;transition:border .15s}
 .ni:focus{border-color:var(--amber)}
@@ -196,14 +237,14 @@ button,input,select,textarea{font-family:inherit}
 
 /* CLIENTS */
 .cr{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;margin-bottom:8px;box-shadow:var(--shadow)}
-.cr:hover{border-color:rgba(245,158,11,.35);background:#FFFBF2}.cr.sel{border-color:rgba(245,158,11,.5);background:var(--ag)}
+.cr:hover{border-color:rgba(245,158,11,.35);background:var(--creamTint)}.cr.sel{border-color:rgba(245,158,11,.5);background:var(--ag)}
 .cname{font-size:13px;font-weight:600;color:var(--text)}
 .cplan{font-size:11px;color:var(--muted);margin-top:1px}
 .cw{min-width:90px}.cwl{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px}
 .ctrack{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
 .cfill{height:100%;border-radius:3px;transition:width .4s}
 .badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
-.bok{background:var(--gd);color:var(--green)}.bwn{background:#FFF7ED;color:#C2410C}.bbd{background:var(--rd);color:var(--red)}
+.bok{background:var(--gd);color:var(--green)}.bwn{background:var(--warnBg);color:var(--warnText)}.bbd{background:var(--rd);color:var(--red)}
 .sch{font-size:12px;font-weight:600;color:var(--amber);min-width:44px;text-align:right}
 
 /* CATALOG */
@@ -274,7 +315,7 @@ button,input,select,textarea{font-family:inherit}
 .cname,.cplan,.wbname,.wbtag,.catpn,.catpm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 html,body{overflow-x:hidden;max-width:100vw}
 .content{max-width:100%}
-@media(max-width:800px){.sidebar{display:none}.g2,.g3,.g4,.mgrid{grid-template-columns:1fr 1fr}.wcal{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:800px){.sidebar{display:none}.g2,.g3,.g4,.mgrid{grid-template-columns:1fr 1fr}}
 @media(max-width:600px){
   .topbar{padding:0 12px}
   .tlogo{font-size:18px;letter-spacing:2px}
@@ -287,8 +328,10 @@ html,body{overflow-x:hidden;max-width:100vw}
   .cr{gap:8px}
   .cw{min-width:70px}
   .pdrow{gap:6px}
+  .wday{flex-basis:66px;padding:8px 6px}
+  .wcal-nav{width:28px;height:28px;font-size:13px}
 }
-@media(max-width:500px){.g2,.g3,.g4,.mgrid{grid-template-columns:1fr}.wcal{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:500px){.g2,.g3,.g4,.mgrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -437,6 +480,18 @@ html,body{overflow-x:hidden;max-width:100vw}
       <div id="slLast" style="font-size:12px;color:var(--muted);margin-bottom:10px"></div>
       <button class="iconbtn" onclick="openSwapFromLogger()" style="margin-bottom:12px">🔁 Swap (AI)</button>
       <div id="slSets"></div>
+      <div class="setstep">
+        <button class="setstep-btn" onclick="addSet()">+ Add Set</button>
+        <button class="setstep-btn danger" onclick="removeSet()" id="slRemoveSetBtn">− Remove Last Set</button>
+      </div>
+      <div id="slRest" class="rest-timer" style="display:none">
+        <div class="rest-time" id="slRestTime">00:00</div>
+        <div style="flex:1;min-width:0">
+          <div class="rest-label" id="slRestLbl">RESTING</div>
+          <div class="htrack"><div class="hfill" id="slRestFill" style="width:0%"></div></div>
+        </div>
+        <button class="btn-g" onclick="stopRest()">Skip</button>
+      </div>
       <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
     </div>
     <div class="mact">
@@ -558,9 +613,22 @@ const SUPABASE_URL='https://fkvcmodmotndprlbcvea.supabase.co', SUPABASE_ANON_KEY
 // Change this to gate who can self-register as a coach. Clients instead use a
 // per-coach invite code (auto-generated, shown in Settings once signed in).
 const COACH_SETUP_CODE='FORGE-COACH-2026';
+/* ─── THEME ─── applied immediately (before boot()/first render) so there's
+   no flash of the wrong theme; persisted per-device via localStorage since
+   it's a device preference, not something that needs to sync to the account */
+function applyTheme(t){
+  THEME=(t==='dark')?'dark':'light';
+  try{document.documentElement.classList.toggle('dark',THEME==='dark')}catch{}
+  try{localStorage.setItem('forged-theme',THEME)}catch{}
+}
+function toggleTheme(){applyTheme(THEME==='dark'?'light':'dark');if(typeof renderMain==='function'&&(USER||DEMO))renderMain()}
+let THEME='light';
+try{applyTheme(localStorage.getItem('forged-theme')||'light')}catch{applyTheme('light')}
+
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
 let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
 let aiLoad=false,selDay=2,ctab='training',ttab='clients';
+let weekOffset=0; // 0 = current week; +1/-1 page a week forward/back via navigateWeek()
 let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
 let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
 /* EX_HISTORY[exerciseName] = {last:{...most recent logged set...}, best:{weight_kg,reps,distance_m,time_sec}}
@@ -917,10 +985,15 @@ async function loadClientRoster(){
 
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h}
 
-async function loadMyWorkouts(){
+function weekStartForOffset(offset){return addDaysISO(weekStartISO(new Date()),(offset||0)*7)}
+/* weekStart: which Monday to load (defaults to the current week). Passed
+   explicitly by navigateWeek() when paging forward/back so the client can
+   browse other weeks' plans, not just whatever week the app happened to
+   boot on. */
+async function loadMyWorkouts(weekStart){
   if(DEMO){seedDemoWorkouts();seedDemoHistory();return}
   try{
-    const start=weekStartISO(new Date());
+    const start=weekStart||weekStartISO(new Date());
     const end=addDaysISO(start,7);
     const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',USER.id).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
     MY_WORKOUTS=data||[];
@@ -1217,7 +1290,16 @@ function setTab(id){if(VIEW==='trainer')ttab=id;else ctab=id;renderSB();renderMa
 function renderMain(){VIEW==='client'?renderClient():renderTrainer()}
 
 /* ═══ CLIENT ═══ */
-function weekOfLabel(){const s=weekStartISO(new Date());const d=new Date(s+'T00:00:00');return `Week of ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
+function weekOfLabel(offset){const s=weekStartForOffset(offset);const d=new Date(s+'T00:00:00');return `Week of ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
+/* Prev/Next week paging for the client's day strip — re-fetches that week's
+   assigned_workouts (loadMyWorkouts) rather than just re-slicing whatever's
+   already in memory, since MY_WORKOUTS only ever holds one week at a time. */
+async function navigateWeek(delta){
+  weekOffset+=delta;
+  selDay=null; // let renderClient() recompute: today if this is the current week, else Monday
+  await loadMyWorkouts(weekStartForOffset(weekOffset));
+  renderMain();
+}
 
 function renderClient(){
   // the tabs bar is the ONLY nav on mobile (sidebar hides below 800px), so it
@@ -1225,7 +1307,7 @@ function renderClient(){
   // back once you're on a tab like Settings that used to bypass this entirely.
   const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'badges',l:'🎖️ Badges'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
   if(ctab==='settings'){gi('mc').innerHTML=clientTabs+settingsPanel();return}
-  const start=weekStartISO(new Date());
+  const start=weekStartForOffset(weekOffset);
   const days=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(start,i);
     const dayWks=MY_WORKOUTS.filter(w=>w.scheduled_date===iso);
@@ -1234,19 +1316,28 @@ function renderClient(){
     const label=dayWks.length?(dayWks.length>1?`${first.name} +${dayWks.length-1}`:first.name):'Rest Day';
     return{day:lbl,date:d.getDate(),iso,label,type:first?first.type:'rest',dayWks};
   });
-  if(selDay==null||!days[selDay])selDay=days.findIndex(d=>d.iso===todayISO());
-  if(selDay<0)selDay=0;
+  if(selDay==null||!days[selDay]){
+    const todayIdx=days.findIndex(d=>d.iso===todayISO());
+    selDay=todayIdx>=0?todayIdx:0; // today if it's in this week, otherwise Monday
+  }
   const d=days[selDay];
   const hasCheckin=d.dayWks.some(w=>w.type==='checkin');
 
   const cal=`<div class="card" style="margin-bottom:16px">
-    <div class="ctr"><div class="ct" style="margin-bottom:0">${weekOfLabel()}</div></div>
-    <div class="wcal">${days.map((w,i)=>{const c=tc(w.type);const s=selDay===i;const isToday=w.iso===todayISO();return`<div class="wday ${s?'sel':''}" onclick="selD(${i})" style="${s?`border-color:${c};background:${c}18`:''};position:relative">
-      ${isToday?`<div class="tdot"></div>`:''}
-      <div class="wday-lbl">${w.day}</div>
-      <div class="wday-date" style="${s?`color:${c}`:''}">${w.date}</div>
-      <div class="wtag" style="background:${c}20;color:${c};border:1px solid ${c}30">${w.label}</div>
-    </div>`}).join('')}</div>
+    <div class="ctr">
+      <div class="ct" style="margin-bottom:0">${weekOfLabel(weekOffset)}</div>
+      ${weekOffset!==0?`<button class="btn-g" style="font-size:11px;padding:6px 12px" onclick="navigateWeek(${-weekOffset})">Back to Today</button>`:''}
+    </div>
+    <div class="wcal-wrap">
+      <button class="wcal-nav" onclick="navigateWeek(-1)" title="Previous week">‹</button>
+      <div class="wcal">${days.map((w,i)=>{const c=tc(w.type);const s=selDay===i;const isToday=w.iso===todayISO();return`<div class="wday ${s?'sel':''}" onclick="selD(${i})" style="${s?`border-color:${c};background:${c}18`:''};position:relative">
+        ${isToday?`<div class="tdot"></div>`:''}
+        <div class="wday-lbl">${w.day}</div>
+        <div class="wday-date" style="${s?`color:${c}`:''}">${w.date}</div>
+        <div class="wtag" style="background:${c}20;color:${c};border:1px solid ${c}30">${w.label}</div>
+      </div>`}).join('')}</div>
+      <button class="wcal-nav" onclick="navigateWeek(1)" title="Next week">›</button>
+    </div>
     <div style="display:flex;align-items:center;justify-content:space-between;padding-top:12px;border-top:1px solid var(--border);margin-top:12px;flex-wrap:wrap;gap:10px">
       <div>
         <div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--text)">${d.day} · ${d.dayWks.length?`${d.dayWks.length} session${d.dayWks.length>1?'s':''}`:'Rest Day'}</div>
@@ -1387,9 +1478,9 @@ function setProgEx(v){progSelectedEx=v;renderMain()}
 function renderProgressCharts(){
   if(typeof Chart==='undefined')return;
   ['progWeightChart','progVolChart','progExChart'].forEach(id=>{if(PROG_CHARTS[id]){PROG_CHARTS[id].destroy();delete PROG_CHARTS[id]}});
-  const gridColor='rgba(20,20,30,.06)';
+  const gridColor=THEME==='dark'?'rgba(242,242,246,.08)':'rgba(20,20,30,.06)';
   Chart.defaults.font.family="'Inter', system-ui, sans-serif";
-  Chart.defaults.color='#6B6B7D';
+  Chart.defaults.color=THEME==='dark'?'#9494A8':'#6B6B7D';
 
   const wCanvas=gi('progWeightChart');
   if(wCanvas&&PROG_CHECKINS&&PROG_CHECKINS.length){
@@ -1498,6 +1589,14 @@ function settingsPanel(){
       ${!isT?`<div class="field"><label>Injuries / limitations (helps the AI pick safe swaps)</label><textarea class="fi" id="stInj" rows="2" placeholder="e.g. left knee, avoid deep flexion">${PROFILE?.injuries||''}</textarea></div>
       <div class="field"><label>Equipment access</label><input class="fi" id="stEquip" placeholder="e.g. home gym, dumbbells only" value="${PROFILE?.equipment_notes||''}"></div>`:''}
       <button class="btn-p" onclick="saveProfileSettings()">Save Profile</button>
+    </div>
+    <div class="card">
+      <div class="ct">🎨 Appearance</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Applies to this device only.</p>
+      <div class="unit-toggle">
+        <button class="unit-opt ${THEME!=='dark'?'on':''}" onclick="toggleTheme()">☀️ Light</button>
+        <button class="unit-opt ${THEME==='dark'?'on':''}" onclick="toggleTheme()">🌙 Dark</button>
+      </div>
     </div>
     <div class="card">
       <div class="ct">📐 Units</div>
@@ -1730,6 +1829,7 @@ let SEL_WB_SOURCE=null; // whichever workout list the logger/builder is currentl
 
 function openSL(workoutId,exIdx){
   const wk=findWorkoutById(workoutId);if(!wk)return;
+  stopRest(); // clear any leftover rest timer from whatever exercise was open before this one
   curEx={wk,idx:exIdx};
   const ex=wk.exercises[exIdx];
   const nSets=ex.s||1;
@@ -1783,10 +1883,31 @@ function renderSets(){
       <button class="lb ${s.done?'conf':'idle'}" onclick="${s.done?'':`logSet(${s.id})`}">${s.done?'✓ Logged':'Log Set'}</button>
     </div>`;
   }).join('');
+  const rmBtn=gi('slRemoveSetBtn');
+  if(rmBtn){const last=curSets[curSets.length-1];rmBtn.disabled=curSets.length<=1||!!(last&&last.done)}
+}
+/* mid-workout set count adjustment — "stuck at 1 or 2 sets" was the actual
+   complaint: the count was whatever the coach/PDF prescribed, with no way
+   to add an extra set on a good day (or drop one) without leaving the
+   session. New sets copy the previous set's values as a starting point. */
+function addSet(){
+  if(!curEx)return;
+  const last=curSets[curSets.length-1];
+  curSets.push({id:curSets.length+1,reps:last?last.reps:'',weight:last?last.weight:'',distance:last?last.distance:'',time:last?last.time:'',level:last?last.level:'',done:false});
+  renderSets();updSLBtn();
+}
+function removeSet(){
+  if(!curEx||curSets.length<=1)return;
+  const last=curSets[curSets.length-1];
+  if(last.done){toast("Can't remove a set you've already logged");return}
+  curSets.pop();
+  renderSets();updSLBtn();
 }
 function updSet(id,f,v){const s=curSets.find(x=>x.id===id);if(s)s[f]=v}
 async function logSet(id){
   const s=curSets.find(x=>x.id===id);if(!s)return;s.done=true;renderSets();updSLBtn();
+  ensureAudioCtx(); // unlock audio now, on a real click, so the rest-timer beep can play later without another gesture
+  maybeStartRest();
   if(!DEMO){
     const wk=curEx.wk,ex=wk.exercises[curEx.idx];
     try{
@@ -1800,6 +1921,82 @@ async function logSet(id){
   checkAllDone();
 }
 function updSLBtn(){const d=curSets.filter(s=>s.done).length;gi('slDone').textContent=`${d}/${curSets.length} Sets — Mark Done`}
+
+/* ═══ REST TIMER ═══ starts automatically after logging a set (if the
+   exercise has a prescribed rest AND there's another set left to do),
+   counts down live, beeps + flashes when it hits zero. Manual "Skip"
+   available throughout. Free-navigation model: doesn't force you to wait
+   before jumping to a different exercise. */
+let restTimer=null,restEndsAt=0,restDuration=0,audioCtx=null;
+function parseRestSeconds(r){
+  if(!r)return null;
+  const m=String(r).match(/(\d+)/);
+  return m?+m[1]:null;
+}
+function maybeStartRest(){
+  if(!curEx)return;
+  const ex=curEx.wk.exercises[curEx.idx];
+  const secs=parseRestSeconds(ex.rest);
+  const hasMore=curSets.some(s=>!s.done);
+  if(secs&&hasMore)startRestTimer(secs);
+}
+function fmtRestClock(s){s=Math.max(0,Math.round(s));return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function startRestTimer(seconds){
+  stopRest();
+  restDuration=seconds;restEndsAt=Date.now()+seconds*1000;
+  const el=gi('slRest');if(!el)return;
+  el.style.display='flex';el.classList.remove('done');
+  const lbl=gi('slRestLbl');if(lbl)lbl.textContent='RESTING';
+  tickRest();
+  restTimer=setInterval(tickRest,250);
+}
+function tickRest(){
+  const el=gi('slRest');if(!el)return;
+  const remain=Math.ceil((restEndsAt-Date.now())/1000);
+  if(remain<=0){
+    if(restTimer){clearInterval(restTimer);restTimer=null}
+    const t=gi('slRestTime');if(t)t.textContent='00:00';
+    const f=gi('slRestFill');if(f)f.style.width='100%';
+    const lbl=gi('slRestLbl');if(lbl)lbl.textContent='REST DONE — GO AGAIN';
+    el.classList.add('done');
+    playRestBeep();
+    toast('⏱️ Rest done — next set!');
+    return;
+  }
+  const t=gi('slRestTime');if(t)t.textContent=fmtRestClock(remain);
+  const f=gi('slRestFill');if(f)f.style.width=(restDuration?Math.min(100,100*(1-remain/restDuration)):0)+'%';
+}
+function stopRest(){
+  if(restTimer){clearInterval(restTimer);restTimer=null}
+  const el=gi('slRest');if(el){el.style.display='none';el.classList.remove('done')}
+}
+/* AudioContext must be created/resumed from a real user gesture (browser
+   autoplay policy) — logSet() calls this on click, so by the time the
+   timer's setInterval callback wants to beep later, the context is already
+   unlocked and playRestBeep() just reuses it. */
+function ensureAudioCtx(){
+  try{
+    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume().catch(()=>{});
+  }catch{}
+  return audioCtx;
+}
+function playRestBeep(){
+  const ctx=ensureAudioCtx();if(!ctx)return;
+  const beep=(freq,delay)=>setTimeout(()=>{
+    try{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.type='sine';o.frequency.value=freq;
+      g.gain.setValueAtTime(0.0001,ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.25,ctx.currentTime+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.3);
+      o.connect(g);g.connect(ctx.destination);
+      o.start();o.stop(ctx.currentTime+0.32);
+    }catch{}
+  },delay);
+  beep(880,0);beep(1046.5,220);
+}
+
 async function checkAllDone(){
   if(curSets.filter(s=>s.done).length<curSets.length)return;
   gi('slAi').style.display='block';gi('slAiTxt').textContent='Analysing your session...';
@@ -1828,9 +2025,12 @@ function fmtPBValue(field,value){
   return `${value} reps`;
 }
 async function closeSL(done){
+  stopRest();
   if(done&&curEx){
     const ex=curEx.wk.exercises[curEx.idx];
     ex.done=curSets.every(s=>s.done)&&curSets.length>0;
+    // remember any set count change (+/- Add/Remove Set) so it sticks for next time
+    ex.s=curSets.length;
     // roll last-logged set values back into the exercise as the new target/actuals
     const last=curSets.filter(s=>s.done).slice(-1)[0];
     if(last){
