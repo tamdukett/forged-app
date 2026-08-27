@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FORGED — Training System</title>
+<title>CRUCIBLE — Where Athletes Are Made</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,9 @@
 <style>
 :root{
   /* light, card-based palette (Trainerize-inspired) — brand amber kept as
-     the single accent color throughout so it still reads as FORGED */
+     the single accent color throughout so it still reads as CRUCIBLE */
   --bg:#F5F5F8;--surface:#FFFFFF;--s2:#F2F2F6;--border:#E7E7EF;--border2:#D6D6E2;
-  --amber:#F59E0B;--ag:rgba(245,158,11,0.10);--ad:#92400E;
+  --amber:#E8460A;--ag:rgba(245,158,11,0.10);--ad:#92400E;
   --green:#16A34A;--gd:#DCFCE7;--red:#DC2626;--rd:#FEE2E2;
   --blue:#2563EB;--purple:#7C3AED;--text:#16161D;--muted:#6B6B7D;
   --shadow:0 1px 2px rgba(20,20,30,.04),0 1px 8px rgba(20,20,30,.05);
@@ -22,7 +22,7 @@
      pulled into variables so dark mode can redefine them instead of ending
      up with a pale island (or, worse, near-white text on a pale bg) */
   --hoverTint:#FFF8EA;--doneTint:#F0FDF4;--creamTint:#FFFBF2;
-  --aboxG1:#FFF8EA;--aboxG2:#FFFFFF;--aboxText:#7C4A03;
+  --aboxG1:#FFF3EE;--aboxG2:#FFFFFF;--aboxText:#7C4A03;
   --mfpbG1:#EFF6FF;--mfpbG2:#FFFFFF;--mfpbBorder:#BFDBFE;
   --warnBg:#FFF7ED;--warnText:#C2410C;
 }
@@ -30,7 +30,7 @@ html.dark{
   /* dark palette — same accent hues, re-tuned for a near-black surface so
      nothing ends up light-text-on-light-tint or dark-text-on-dark-tint */
   --bg:#0E0E13;--surface:#191922;--s2:#20202B;--border:#2C2C3A;--border2:#3D3D4E;
-  --amber:#F59E0B;--ag:rgba(245,158,11,0.16);--ad:#FCD34D;
+  --amber:#E8460A;--ag:rgba(245,158,11,0.16);--ad:#FCD34D;
   --green:#22C55E;--gd:rgba(34,197,94,0.16);--red:#F87171;--rd:rgba(248,113,113,0.16);
   --blue:#60A5FA;--purple:#A78BFA;--text:#F2F2F6;--muted:#9494A8;
   --shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.3);
@@ -60,8 +60,8 @@ button,input,select,textarea{font-family:inherit}
 .field label{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
 .fi{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border .15s;width:100%}
 .fi:focus{border-color:var(--amber)}.fi::placeholder{color:var(--muted)}
-.btn-p{width:100%;background:var(--amber);color:#0A0A0C;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
-.btn-p:hover{background:#FCD34D;transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-p{width:100%;background:var(--amber);color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
+.btn-p:hover{background:#FF7040;transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .btn-g{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
 .btn-g:hover{border-color:var(--border2)}
 .aerr{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#B91C1C;margin-bottom:12px;display:none}
@@ -76,7 +76,7 @@ button,input,select,textarea{font-family:inherit}
 .pw-eye:hover{opacity:1}
 .authtabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:22px}
 .authtab{flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
-.authtab.active{background:var(--amber);color:#0A0A0C}
+.authtab.active{background:var(--amber);color:#fff}
 .seg{display:flex;gap:6px}
 .segb{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s}
 .segb.on{border-color:var(--amber);background:var(--ag);color:var(--amber)}
@@ -89,7 +89,7 @@ button,input,select,textarea{font-family:inherit}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .vpill{display:flex;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
 .vb{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
-.vb.active{background:var(--amber);color:#0A0A0C}
+.vb.active{background:var(--amber);color:#fff}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A0A0C;cursor:pointer;flex-shrink:0}
 .cdot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
 
@@ -108,7 +108,7 @@ button,input,select,textarea{font-family:inherit}
 /* TABS */
 .tabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:18px;flex-wrap:wrap}
 .tab{flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted);white-space:nowrap}
-.tab.active{background:var(--amber);color:#0A0A0C}
+.tab.active{background:var(--amber);color:#fff}
 
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
@@ -339,7 +339,7 @@ html,body{overflow-x:hidden;max-width:100vw}
 <!-- SETUP -->
 <div class="screen" id="setupScreen">
   <div class="auth-card" style="max-width:460px">
-    <div class="logo">FORGED</div>
+    <div class="logo">CRUCIBLE</div>
     <div class="logo-sub">Training System — Setup</div>
     <p class="auth-note">Connect your Supabase database to get started. Only needed once per device.</p>
     <div class="field"><label>Supabase Project URL</label><input class="fi" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
@@ -357,7 +357,7 @@ html,body{overflow-x:hidden;max-width:100vw}
 <!-- AUTH -->
 <div class="screen" id="authScreen">
   <div class="auth-card" id="loginCard">
-    <div class="logo">FORGED</div>
+    <div class="logo">CRUCIBLE</div>
     <div class="logo-sub">Training System</div>
     <div class="authtabs">
       <button class="authtab active" id="atLogin" onclick="showAuthTab('login')">Sign In</button>
@@ -376,7 +376,7 @@ html,body{overflow-x:hidden;max-width:100vw}
   </div>
 
   <div class="auth-card" id="signupCard" style="display:none">
-    <div class="logo">FORGED</div>
+    <div class="logo">CRUCIBLE</div>
     <div class="logo-sub">Training System</div>
     <div class="authtabs">
       <button class="authtab" onclick="showAuthTab('login')">Sign In</button>
@@ -409,7 +409,7 @@ html,body{overflow-x:hidden;max-width:100vw}
   </div>
 
   <div class="auth-card" id="setPwCard" style="display:none">
-    <div class="logo">FORGED</div><div class="logo-sub">Training System</div>
+    <div class="logo">CRUCIBLE</div><div class="logo-sub">Training System</div>
     <div class="auth-heading">Create your password</div>
     <p class="auth-note" id="setPwWelcome">Welcome! Choose a secure password to get started.</p>
     <div class="field"><label>New password</label>
@@ -432,7 +432,7 @@ html,body{overflow-x:hidden;max-width:100vw}
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div class="tlogo">FORGED</div>
+    <div><div class="tlogo">CRUCIBLE</div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px">Where Athletes Are Made</div></div>
     <div class="topbar-right">
       <div class="cdot" id="cdot"></div>
       <div class="vpill" id="vpill" style="display:none">
@@ -492,7 +492,7 @@ html,body{overflow-x:hidden;max-width:100vw}
         </div>
         <button class="btn-g" onclick="stopRest()">Skip</button>
       </div>
-      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
+      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ CRUCIBLE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
     </div>
     <div class="mact">
       <button class="btn-g" onclick="closeSL()">Close</button>
@@ -609,7 +609,7 @@ html,body{overflow-x:hidden;max-width:100vw}
 
 <script>
 /* ─── CONFIG ─── */
-const SUPABASE_URL='https://fkvcmodmotndprlbcvea.supabase.co', SUPABASE_ANON_KEY='sb_publishable_W06-DX8SYlgDWo54mzrAMQ_hr3SnioM', CFG_KEY='forged-cfg-v1';
+const SUPABASE_URL='https://carxgrkqhrsxpidanyoz.supabase.co', SUPABASE_ANON_KEY='sb_publishable_XA4hYmoJu4n2ceEpdXuiog_fA9Qc2n-', CFG_KEY='crucible-cfg-v3';
 // Change this to gate who can self-register as a coach. Clients instead use a
 // per-coach invite code (auto-generated, shown in Settings once signed in).
 const COACH_SETUP_CODE='FORGE-COACH-2026';
@@ -619,14 +619,14 @@ const COACH_SETUP_CODE='FORGE-COACH-2026';
 function applyTheme(t){
   THEME=(t==='dark')?'dark':'light';
   try{document.documentElement.classList.toggle('dark',THEME==='dark')}catch{}
-  try{localStorage.setItem('forged-theme',THEME)}catch{}
+  try{localStorage.setItem('crucible-theme',THEME)}catch{}
 }
 function toggleTheme(){applyTheme(THEME==='dark'?'light':'dark');if(typeof renderMain==='function'&&(USER||DEMO))renderMain()}
 let THEME='light';
-try{applyTheme(localStorage.getItem('forged-theme')||'light')}catch{applyTheme('light')}
+try{applyTheme(localStorage.getItem('crucible-theme')||'light')}catch{applyTheme('light')}
 
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
-let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
+let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm CRUCIBLE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
 let aiLoad=false,selDay=2,ctab='training',ttab='clients';
 let weekOffset=0; // 0 = current week; +1/-1 page a week forward/back via navigateWeek()
 let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
@@ -860,7 +860,7 @@ async function loadProfile(){
     await new Promise(r=>setTimeout(r,500));
   }
   if(error||!data){
-    console.warn('FORGED: profile not found, creating...',error);
+    console.warn('CRUCIBLE: profile not found, creating...',error);
     await sb.from('profiles').upsert({
       id:USER.id, email:USER.email, role:'client', must_change_password:true
     },{onConflict:'id'});
@@ -902,7 +902,7 @@ async function doSetPw(){
     await sb.from('profiles').update({must_change_password:false}).eq('id',USER.id);
     PROFILE.must_change_password=false;
     gi('authScreen').classList.remove('active');gi('setPwCard').style.display='none';gi('loginCard').style.display='block';
-    launch();toast('Password set — welcome to FORGED! 🔥');
+    launch();toast('Password set — welcome to CRUCIBLE! 🔥');
   }finally{btn.disabled=false;btn.textContent='Set password & continue →'}
 }
 
@@ -980,7 +980,7 @@ async function loadClientRoster(){
         equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric',
         _workouts:wks};
     });
-  }catch(e){console.warn('FORGED: could not load client roster',e);CLIENTS=[]}
+  }catch(e){console.warn('CRUCIBLE: could not load client roster',e);CLIENTS=[]}
 }
 
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h}
@@ -1280,7 +1280,7 @@ function renderSB(){
   const name=PROFILE?.full_name||(USER?.email?.split('@')[0])||'';
   const col=isT?'#F59E0B':'#8B5CF6';
   gi('sbav').style.background=col;gi('sbav').textContent=ini(name||'?');gi('sbav').style.color='#0A0A0C';
-  gi('sbun').textContent=name||USER?.email||'';gi('sbur').textContent=isT?'Head Trainer':'Member';
+  gi('sbun').textContent=name||USER?.email||'';gi('sbur').textContent=isT?'Head Coach':'Member';
   gi('sbnav').innerHTML=nav.map(n=>`<div class="sb-item ${at===n.id?'active':''}" onclick="setTab('${n.id}')"><span class="sb-icon">${n.ic}</span>${n.l}</div>`).join('');
 }
 
@@ -1680,7 +1680,7 @@ const QP=['How do I do a Romanian Deadlift?','What muscles does a squat work?','
 
 function aiPanel(){
   return`<div class="card" style="height:560px;display:flex;flex-direction:column">
-    <div class="ct">⚡ FORGE AI — Training Assistant</div>
+    <div class="ct">⚡ CRUCIBLE AI — Training Assistant</div>
     <div class="aiq">${QP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
     <div class="aiwrap" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
     <div class="airow">
@@ -1698,8 +1698,8 @@ function attachAI(){
 
 function renderAIM(){
   const c=gi('aim');if(!c)return;
-  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">FORGE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
-  if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">FORGE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
+  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">CRUCIBLE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
+  if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">CRUCIBLE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
   c.scrollTop=c.scrollHeight;
 }
 
@@ -1720,7 +1720,7 @@ async function sendAI(preset){
   try{
     const hist=AIMSG.map(m=>({role:m.role==='bot'?'assistant':'user',content:m.text}));
     const injCtx=PROFILE?.injuries?` The client has noted these injuries/limitations: ${PROFILE.injuries}.`:'';
-    const text=await callClaude(hist,'You are FORGE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
+    const text=await callClaude(hist,'You are CRUCIBLE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
     AIMSG.push({role:'bot',text:text||'Sorry, try again!'});
   }catch(e){AIMSG.push({role:'bot',text:e.message==='NO_KEY'?'Add your Anthropic API key in Settings to enable the assistant.':'Connection issue — please try again.'})}
   aiLoad=false;renderAIM();
@@ -2004,7 +2004,7 @@ async function checkAllDone(){
   try{
     const ex=curEx.wk.exercises[curEx.idx];
     const summary=curSets.map(s=>ex.track==='reps_weight'?`Set ${s.id}: ${s.weight}${wUnit()} × ${s.reps}`:ex.track==='distance_time'?`Set ${s.id}: ${s.distance}${dUnit()} in ${s.time}`:`Set ${s.id}: ${s.reps||s.time||s.level}`).join(', ');
-    const text=await callClaude([{role:'user',content:`FORGE AI: client completed ${ex.n}: ${summary}. Give a 1-2 sentence progressive overload tip with specific numbers, plus one form cue. Direct, no fluff.`}],undefined,300);
+    const text=await callClaude([{role:'user',content:`CRUCIBLE AI: client completed ${ex.n}: ${summary}. Give a 1-2 sentence progressive overload tip with specific numbers, plus one form cue. Direct, no fluff.`}],undefined,300);
     gi('slAiTxt').textContent=text||'Great work — keep pushing next session!';
   }catch{gi('slAiTxt').textContent='Solid session! Try adding a little more next time.'}
 }
@@ -2357,7 +2357,7 @@ ${candidates.map(c=>`- ${c.name} (${c.equip})`).join('\n')}`;
       || candidates.find(c=>c.name.toLowerCase().includes(cleaned.toLowerCase()));
     if(!choice)choice=candidates[Math.floor(Math.random()*candidates.length)];
     SWAP_CHOICE=choice;
-    gi('swapResult').innerHTML=`<div class="abox"><div class="ablbl">⚡ FORGE AI suggests</div><div class="abtxt"><strong>${choice.name}</strong><br><span style="color:var(--muted);font-size:12px">${choice.musc} · ${choice.equip} — still trains the same area, reason: ${reason}${note?' ('+note+')':''}.</span></div></div>`;
+    gi('swapResult').innerHTML=`<div class="abox"><div class="ablbl">⚡ CRUCIBLE AI suggests</div><div class="abtxt"><strong>${choice.name}</strong><br><span style="color:var(--muted);font-size:12px">${choice.musc} · ${choice.equip} — still trains the same area, reason: ${reason}${note?' ('+note+')':''}.</span></div></div>`;
     btn.textContent='Apply Swap ✓';btn.disabled=false;btn.onclick=applySwapChoice;
   }catch(e){
     // graceful fallback: pick the first matching candidate that also avoids the
@@ -2572,7 +2572,7 @@ function rUpload(){
   return`<div class="col">
     <div class="card">
       <div class="ct">📄 Upload Training Plans (PDF)</div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Upload PDF training plans. FORGE AI reads the PDF, extracts exercises/sets/reps/rest, and adds them to your catalog (and to Supabase, if connected) automatically.</p>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Upload PDF training plans. CRUCIBLE AI reads the PDF, extracts exercises/sets/reps/rest, and adds them to your catalog (and to Supabase, if connected) automatically.</p>
       <div class="uz" id="uz" onclick="gi('pdfInp').click()" ondragover="dov(event)" ondrop="drop(event)" ondragleave="this.classList.remove('drag')">
         <div style="font-size:36px;margin-bottom:10px">📄</div>
         <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Drop PDF files here, or click to browse</div>
@@ -2591,7 +2591,7 @@ function rUpload(){
     ${uploadedPDFs.length?`<div class="card"><div class="ct">Recently Uploaded</div>${uploadedPDFs.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:20px">📄</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.wks} workouts extracted · ${f.date}</div></div><span class="badge bok">✓ Imported</span></div>`).join('')}</div>`:''}
     <div class="card csm">
       <div class="ct">How it works</div>
-      ${[{n:'1',t:'Upload your PDF',d:'Drag and drop any PDF — TrainHeroic, TrueCoach, custom spreadsheets, anything.'},{n:'2',t:'FORGE AI reads it',d:'Claude AI extracts every exercise, set, rep scheme, rest period, and coaching note.'},{n:'3',t:'Added to catalog instantly',d:'Extracted workouts appear in your catalog and exercise library. Edit any details before assigning.'},{n:'4',t:'Assign to clients',d:"Pick any workout from the catalog and add it to a client's weekly plan."}].map(s=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--ag);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-weight:700;font-size:12px;color:var(--amber);flex-shrink:0">${s.n}</div><div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${s.t}</div><div style="font-size:12px;color:var(--muted)">${s.d}</div></div></div>`).join('')}
+      ${[{n:'1',t:'Upload your PDF',d:'Drag and drop any PDF — TrainHeroic, TrueCoach, custom spreadsheets, anything.'},{n:'2',t:'CRUCIBLE AI reads it',d:'Claude AI extracts every exercise, set, rep scheme, rest period, and coaching note.'},{n:'3',t:'Added to catalog instantly',d:'Extracted workouts appear in your catalog and exercise library. Edit any details before assigning.'},{n:'4',t:'Assign to clients',d:"Pick any workout from the catalog and add it to a client's weekly plan."}].map(s=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--ag);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-weight:700;font-size:12px;color:var(--amber);flex-shrink:0">${s.n}</div><div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${s.t}</div><div style="font-size:12px;color:var(--muted)">${s.d}</div></div></div>`).join('')}
     </div>
   </div>`;
 }
@@ -2603,7 +2603,7 @@ function handleFiles(e){const files=Array.from(e.target.files);if(files.length)p
 async function procPDFs(files){
   const prog=gi('uprog');prog.classList.add('show');
   for(const file of files){
-    gi('ufn').textContent=file.name;gi('ust').textContent='Reading…';gi('pf').style.width='20%';gi('udet').textContent='Sending to FORGE AI for extraction…';
+    gi('ufn').textContent=file.name;gi('ust').textContent='Reading…';gi('pf').style.width='20%';gi('udet').textContent='Sending to CRUCIBLE AI for extraction…';
     if(!apiKey()){gi('ust').textContent='No API key';gi('udet').textContent='Add your Anthropic API key in Settings to enable PDF extraction.';gi('pf').style.width='100%';uploadedPDFs.unshift({name:file.name,wks:0,date:new Date().toLocaleDateString('en-GB')});toast(`"${file.name}" uploaded — add API key for AI extraction`);await new Promise(r=>setTimeout(r,1500));renderMain();return}
     try{
       const b64=await f2b64(file);gi('pf').style.width='40%';gi('ust').textContent='Extracting…';
@@ -2650,7 +2650,7 @@ const TQP=['Write a fat loss programme for intermediate','Progressive overload e
 function rTrainerAI(){
   return`<div class="g2" style="align-items:start">
     <div class="card" style="height:560px;display:flex;flex-direction:column">
-      <div class="ct">⚡ FORGE AI — Trainer Assistant</div>
+      <div class="ct">⚡ CRUCIBLE AI — Trainer Assistant</div>
       <div class="aiq">${TQP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
       <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
       <div class="airow"><textarea class="ainp" id="aiinp" rows="2" placeholder="Ask about programming, exercise selection, clients..."></textarea><button class="aisend" onclick="sendAI()">Send</button></div>
@@ -2658,7 +2658,7 @@ function rTrainerAI(){
     <div class="col">
       <div class="card">
         <div class="ct">⚡ AI Workout Generator</div>
-        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">Describe client goals and FORGE AI builds a complete training plan.</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">Describe client goals and CRUCIBLE AI builds a complete training plan.</p>
         <textarea class="fi" id="agGoals" rows="4" placeholder="e.g. Female, intermediate, fat loss, 3x/week, full gym, 50 min, preparing for Hyrox..." style="margin-bottom:10px;resize:vertical"></textarea>
         <button class="btn-p" onclick="genPlan()">Generate Workout Plan</button>
         <div id="agRes" style="display:none;margin-top:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;max-height:280px;overflow-y:auto"></div>
@@ -2841,7 +2841,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
 (async function boot(){
   showAuthTab('login');
   if(SUPABASE_URL&&SUPABASE_ANON_KEY){
-    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'crucible-auth-v3'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
     applyInviteFromURL();
@@ -2849,7 +2849,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
   }
   const cfg=readCfg();
   if(cfg){
-    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
+    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'crucible-auth-v3'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
     applyInviteFromURL();
