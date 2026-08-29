@@ -612,6 +612,51 @@ html,body{overflow-x:hidden;max-width:100vw}
   </div>
 </div>
 
+<!-- WORKOUT OVERVIEW — shown when a client taps a day's workout card; a
+     read-only run-down of the session before committing to Start Workout -->
+<div class="overlay" id="woOv" onmousedown="closeOverlayOnBackdrop(event,closeWO)">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd">
+      <div><div class="mtitle" id="woName" style="margin-bottom:0"></div><div class="msub" id="woMeta" style="margin-bottom:0"></div></div>
+      <button class="modal-x" onclick="closeWO()">✕</button>
+    </div>
+    <div class="modal-bd"><div id="woCont"></div></div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeWO()">Close</button>
+      <button class="btn-p" id="woStartBtn" onclick="startWorkoutFromOverview()" style="flex:1">▶️ Start Workout</button>
+    </div>
+  </div>
+</div>
+
+<!-- GUIDED WORKOUT PLAYER — 3-2-1-GO countdown, then a between-exercise
+     rest/"up next" transition, driven by startGuidedWorkout() and
+     openGuidedTransition() in the script. Reuses the existing Set Logger
+     (#slOv) for the actual per-exercise logging — this overlay only handles
+     the countdown and the hand-off between exercises. -->
+<div class="overlay" id="gwOv" onmousedown="closeOverlayOnBackdrop(event,cancelGuidedWorkout)">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-hd">
+      <div></div>
+      <button class="modal-x" onclick="cancelGuidedWorkout()">✕</button>
+    </div>
+    <div class="modal-bd" style="text-align:center;padding:10px 10px 30px">
+      <div id="gwCountWrap">
+        <div style="font-size:13px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Get Ready</div>
+        <div id="gwCountNum" style="font-family:var(--df);font-size:64px;font-weight:800;color:var(--amber)">3</div>
+      </div>
+      <div id="gwTransWrap" style="display:none">
+        <div style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:4px">✅ <span id="gwDoneName"></span> logged</div>
+        <div style="font-family:var(--df);font-size:40px;font-weight:800;color:var(--amber);margin:14px 0 4px" id="gwRestTime">00:20</div>
+        <div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px">Resting</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Up Next</div>
+        <div style="font-size:17px;font-weight:700;color:var(--text)" id="gwNextName"></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="gwNextMeta"></div>
+        <button class="btn-g" style="margin-top:18px" id="gwSkipBtn">Skip Rest →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- WORKOUT BUILDER MODAL (used by client's own day, coach editing a client's day,
      AND coach editing/creating a catalog plan template — see setWBMode()) -->
 <div class="overlay" id="wbOv" onmousedown="closeOverlayOnBackdrop(event,closeWB)">
@@ -710,6 +755,71 @@ html,body{overflow-x:hidden;max-width:100vw}
   </div>
 </div>
 
+<!-- AI TRAINING PLAN WIZARD — 4-question intake, then Claude generates a
+     periodized (Base/Build/Peak/Taper) week-by-week plan that's written
+     straight onto the calendar. See openTrainingPlanWizard()/generateTrainingPlan(). -->
+<div class="overlay" id="tpOv" onmousedown="closeOverlayOnBackdrop(event,closeTrainingPlanWizard)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">🤖 Build My Training Plan</div><div class="msub" style="margin-bottom:0">A few questions, then AI builds your week-by-week plan</div></div>
+      <button class="modal-x" onclick="closeTrainingPlanWizard()">✕</button>
+    </div>
+    <div class="modal-bd" id="tpForm">
+      <div class="field"><label>Weeks to train</label>
+        <select class="fi" id="tpWeeks"><option value="4">4 weeks</option><option value="6">6 weeks</option><option value="8" selected>8 weeks</option><option value="10">10 weeks</option><option value="12">12 weeks</option><option value="16">16 weeks</option></select>
+      </div>
+      <div class="field"><label>Training days per week</label>
+        <select class="fi" id="tpDays"><option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="5">5 days</option></select>
+      </div>
+      <div class="field"><label>Your level</label>
+        <select class="fi" id="tpLevel"><option value="beginner">Beginner</option><option value="intermediate" selected>Intermediate</option><option value="advanced">Advanced</option><option value="elite">Elite</option></select>
+      </div>
+      <div class="field"><label>Equipment</label>
+        <select class="fi" id="tpEquip"><option value="full gym" selected>Full gym — sled, SkiErg, rower</option><option value="minimal">Minimal — dumbbells + space to run</option><option value="bodyweight">Bodyweight only</option></select>
+      </div>
+      <div class="field"><label>Goal / event (optional)</label><input class="fi" id="tpGoal" placeholder="e.g. Sub-75 min Hyrox race, general fat loss..."></div>
+      <div class="field"><label>Race / event date (optional — adds a taper week)</label><input class="fi" type="date" id="tpRaceDate"></div>
+      <div id="tpResult"></div>
+    </div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeTrainingPlanWizard()">Cancel</button>
+      <button class="btn-p" onclick="generateTrainingPlan()" style="flex:1" id="tpGoBtn">Generate My Plan →</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI NUTRITION / MEAL-PLAN WIZARD — generates target macros + a sample day
+     of meals, periodized by training phase if a race date is set. No manual
+     food logging. See openNutritionWizard()/generateNutritionPlan(). -->
+<div class="overlay" id="npOv" onmousedown="closeOverlayOnBackdrop(event,closeNutritionWizard)">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hd">
+      <div><div class="mtitle" style="margin-bottom:0">🥗 Build My Nutrition Plan</div><div class="msub" style="margin-bottom:0">Target macros + a sample day of meals, matched to your training</div></div>
+      <button class="modal-x" onclick="closeNutritionWizard()">✕</button>
+    </div>
+    <div class="modal-bd" id="npForm">
+      <div class="field"><label>Primary goal</label>
+        <select class="fi" id="npGoal"><option value="Fat loss">Fat loss</option><option value="Maintenance" selected>Maintenance / general fitness</option><option value="Performance / race fueling">Performance / race fueling</option><option value="Muscle gain">Muscle gain</option></select>
+      </div>
+      <div class="field"><label>Dietary preference</label>
+        <select class="fi" id="npDiet"><option value="none">No restrictions</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="pescatarian">Pescatarian</option><option value="dairy-free">Dairy-free</option><option value="gluten-free">Gluten-free</option></select>
+      </div>
+      <div class="g2">
+        <div class="field"><label>Current weight (optional)</label><input class="fi" id="npWeight" inputmode="decimal" placeholder="e.g. 75"></div>
+        <div class="field"><label>Activity level</label>
+          <select class="fi" id="npActivity"><option value="moderate" selected>Training 3-5x/week</option><option value="high">Training 6-7x/week</option><option value="light">Training 1-2x/week</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Race / event date (optional — periodizes your macros)</label><input class="fi" type="date" id="npRaceDate"></div>
+      <div id="npResult"></div>
+    </div>
+    <div class="mact">
+      <button class="btn-g" onclick="closeNutritionWizard()">Cancel</button>
+      <button class="btn-p" onclick="generateNutritionPlan()" style="flex:1" id="npGoBtn">Generate My Plan →</button>
+    </div>
+  </div>
+</div>
+
 <!-- WORKOUT COMPLETE / CELEBRATION MODAL -->
 <div class="overlay" id="winOv" onmousedown="closeOverlayOnBackdrop(event,closeWin)">
   <div class="modal" style="max-width:460px">
@@ -749,7 +859,9 @@ try{applyTheme(localStorage.getItem('forged-theme')||'dark')}catch{applyTheme('l
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
 let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
 let aiLoad=false,selDay=2,ctab='training',ttab='clients';
-let plansFilter='all'; // client-facing Plans tab category filter
+let plansFilter='all',styleFilter='all'; // client-facing Plans tab category + style filters
+const STYLE_LABELS={emom:'EMOM',amrap:'AMRAP',circuit:'Circuit',intervals:'Intervals',steady:'Steady-State',technique:'Technique'};
+const FOCUS_LABELS={endurance:'Endurance',strength:'Strength',power:'Power',technique:'Technique',hyrox_sim:'Race Sim'};
 let weekOffset=0; // 0 = current week; +1/-1 page a week forward/back via navigateWeek()
 let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
 let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
@@ -1135,12 +1247,24 @@ async function loadAppData(){
     (async()=>{
       try{
         const{data}=await sb.from('workout_templates').select('*').order('plan');
-        TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[],category:x.category||'general',difficulty:x.difficulty||null,icon:x.icon||null,isPrebuilt:!!x.is_prebuilt})):TPL_DEMO.slice();
+        TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[],category:x.category||'general',difficulty:x.difficulty||null,icon:x.icon||null,style:x.style||null,focus:x.focus||null,isPrebuilt:!!x.is_prebuilt})):TPL_DEMO.slice();
       }catch{TEMPLATES=TPL_DEMO.slice()}
     })(),
     loadSharedAIKey(),
     PROFILE.role==='trainer'?loadClientRoster():loadMyWorkouts(),
+    PROFILE.role==='client'?loadNutritionPlan():Promise.resolve(),
   ]);
+}
+
+/* Latest AI-generated nutrition plan for this client (there can be several
+   over time as goals/phases change — the app only ever shows the newest). */
+let NUTRITION_PLAN=null;
+async function loadNutritionPlan(){
+  if(DEMO)return;
+  try{
+    const{data}=await sb.from('nutrition_plans').select('*').eq('client_id',USER.id).order('generated_at',{ascending:false}).limit(1).maybeSingle();
+    NUTRITION_PLAN=data||null;
+  }catch{NUTRITION_PLAN=null}
 }
 
 /* The Anthropic key only needs to be entered ONCE, by the coach, in Settings.
@@ -1569,8 +1693,9 @@ function renderClient(){
           const lc=exList.filter(e=>e.done).length;
           const hp=exList.length?Math.round((lc/exList.length)*100):0;
           return`<div class="card">
-          <div class="ctr"><div class="ct" style="margin-bottom:0">${wk.name}${wk.status==='done'?' ✅':''}</div>
+          <div class="ctr"><div class="ct" style="margin-bottom:0;cursor:pointer" onclick="openWorkoutOverview('${wk.id}')" title="View this workout">${wk.name}${wk.status==='done'?' ✅':''}</div>
             <div style="display:flex;gap:6px">
+              <button class="iconbtn" style="background:var(--amber);color:#0A0A0C;border-color:transparent" onclick="openWorkoutOverview('${wk.id}')">▶️ Start</button>
               <button class="iconbtn" onclick='openWB(${JSON.stringify(wk).replace(/'/g,"&apos;")},"client-today")'>✏️ Edit</button>
               <button class="iconbtn danger" onclick="deleteMyWorkout('${wk.id}')">🗑</button>
             </div>
@@ -1609,14 +1734,19 @@ const DISC_LABELS={hyrox:'Hyrox',metcon:'Metcon / CrossFit',running:'Running',ge
 
 /* ═══ PLANS TAB — RoxHype-style pre-built plan library + "design your own" ═══ */
 function setPlansFilter(cat){plansFilter=cat;renderMain()}
+function setStyleFilter(s){styleFilter=s;renderMain()}
 function rPlans(){
   const cats=[{id:'all',l:'All'},{id:'hyrox',l:'Hyrox'},{id:'metcon',l:'Metcon/CrossFit'},{id:'running',l:'Running'},{id:'general',l:'General Fitness'},{id:'strength',l:'Strength'},{id:'mobility',l:'Mobility'}];
+  const styles=[{id:'all',l:'All Styles'},{id:'emom',l:'⏱️ EMOM'},{id:'amrap',l:'🔄 AMRAP'},{id:'circuit',l:'🔁 Circuit'},{id:'intervals',l:'👟 Intervals'},{id:'steady',l:'🏃 Steady-State'},{id:'technique',l:'🧘 Technique'}];
   const mine=PROFILE?.disciplines||[];
   let list=TEMPLATES.slice();
   if(plansFilter!=='all')list=list.filter(t=>(t.category||'general')===plansFilter);
   else if(mine.length)list.sort((a,b)=>(mine.includes(b.category)?1:0)-(mine.includes(a.category)?1:0));
+  if(styleFilter!=='all')list=list.filter(t=>t.style===styleFilter);
   const catIcon={hyrox:'🏃',metcon:'⚡',running:'👟',strength:'🏋️',mobility:'🧘',general:'💪'};
   const diffChip=d=>d?`<span class="chip chip-${d}">${d}</span>`:'';
+  const styleChip=t=>t.style?`<span class="chip" style="background:rgba(59,130,246,.15);color:#3B82F6;border-color:rgba(59,130,246,.3)">${STYLE_LABELS[t.style]||t.style}</span>`:'';
+  const focusChip=t=>t.focus?`<span class="chip" style="background:rgba(34,197,94,.15);color:#22C55E;border-color:rgba(34,197,94,.3)">${FOCUS_LABELS[t.focus]||t.focus}</span>`:'';
   return`<div class="hero" style="padding-top:0">
       <div class="hero-kicker">Plan Library</div>
       <div class="hero-title">Choose Your <em>Training</em></div>
@@ -1627,16 +1757,93 @@ function rPlans(){
         <div class="ct" style="margin-bottom:2px">🎨 Design Your Own</div>
         <div style="font-size:12px;color:var(--muted)">Build a fully custom workout from the exercise library — any discipline, any structure, your call.</div>
       </div>
-      <button class="btn-p" style="width:auto;padding:11px 20px;margin-top:0" onclick='openWB(${JSON.stringify({name:"My Custom Workout",type:"training",scheduled_date:todayISO(),exercises:[]}).replace(/'/g,"&apos;")},"client-today")'>+ Design My Own</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-g" style="width:auto;padding:11px 20px;margin-top:0" onclick="openTrainingPlanWizard()">🤖 Build My Training Plan</button>
+        <button class="btn-p" style="width:auto;padding:11px 20px;margin-top:0" onclick='openWB(${JSON.stringify({name:"My Custom Workout",type:"training",scheduled_date:todayISO(),exercises:[]}).replace(/'/g,"&apos;")},"client-today")'>+ Design My Own</button>
+      </div>
     </div>
     <div class="cat-pill-row">${cats.map(c=>`<button class="cat-pill ${plansFilter===c.id?'on':''}" onclick="setPlansFilter('${c.id}')">${c.l}</button>`).join('')}</div>
+    <div class="cat-pill-row" style="margin-top:8px">${styles.map(s=>`<button class="cat-pill ${styleFilter===s.id?'on':''}" onclick="setStyleFilter('${s.id}')">${s.l}</button>`).join('')}</div>
     <div class="plan-grid">${list.length?list.map(t=>`<div class="plan-card" onclick="useTemplateForMe('${t.id}')">
         <div class="pc-icon">${t.icon||catIcon[t.category]||'💪'}</div>
         <div class="pc-title">${t.name}</div>
         <div class="pc-desc">${t.plan||'Custom workout'}${t.equip?' · '+t.equip:''}</div>
-        <div class="pc-chips">${diffChip(t.difficulty)}<span class="chip">${t.dur||'—'} min</span><span class="chip">${(t.ex||[]).length} exercises</span></div>
-      </div>`).join(''):`<div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No plans in this category yet — ask your coach to add some, or design your own above.</div>`}</div>`;
+        <div class="pc-chips">${diffChip(t.difficulty)}${styleChip(t)}${focusChip(t)}<span class="chip">${t.dur||'—'} min</span><span class="chip">${(t.ex||[]).length} exercises</span></div>
+      </div>`).join(''):`<div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No plans match these filters yet — try a different style/category, or design your own above.</div>`}</div>`;
 }
+/* ═══ AI TRAINING PLAN WIZARD ═══ builds a periodized multi-week plan
+   (Base/Build/Peak/Deload/Taper) from a short intake, then writes it
+   straight onto the client's calendar as real assigned_workouts rows —
+   same underlying exercise shape ({n,s,r,rest} -> tplExToWkEx) as every
+   other plan/template path in the app. */
+function openTrainingPlanWizard(){
+  gi('tpResult').innerHTML='';
+  if(PROFILE?.fitness_level)gi('tpLevel').value=PROFILE.fitness_level;
+  if(PROFILE?.race_date)gi('tpRaceDate').value=PROFILE.race_date;
+  if(PROFILE?.primary_goal)gi('tpGoal').value=PROFILE.primary_goal;
+  gi('tpGoBtn').disabled=false;gi('tpGoBtn').textContent='Generate My Plan →';
+  gi('tpOv').classList.add('open');
+}
+function closeTrainingPlanWizard(){gi('tpOv').classList.remove('open')}
+
+async function generateTrainingPlan(){
+  const weeks=+gi('tpWeeks').value,daysPerWeek=+gi('tpDays').value,level=gi('tpLevel').value,
+    equip=gi('tpEquip').value,goal=gi('tpGoal').value.trim(),raceDate=gi('tpRaceDate').value||null;
+  const res=gi('tpResult');res.innerHTML='';
+  if(!apiKey()){res.innerHTML=`<p style="font-size:12px;color:var(--muted);margin-top:10px">Add your Anthropic API key in Settings to use the AI plan builder.</p>`;return}
+  const btn=gi('tpGoBtn');btn.disabled=true;btn.textContent='Building your plan…';
+  try{
+    const equipLabel=equip==='full gym'?'full gym (sled, SkiErg, rower, wall balls)':equip==='minimal'?'minimal — dumbbells and space to run':'bodyweight only';
+    const sys=`You are FORGE AI, a certified strength & conditioning coach building periodized training plans. Return ONLY raw JSON, no markdown fences, no commentary — just the JSON object.`;
+    const prompt=`Build a periodized ${weeks}-week training plan for a ${level} athlete training ${daysPerWeek} days per week with ${equipLabel} equipment. Goal: "${goal||'general fitness improvement'}". ${raceDate?`Target event date: ${raceDate} — every 4th week should be a lighter "Deload" week, and the FINAL week must be "Taper" (reduced volume).`:'No fixed event date — keep it progressive, with every 4th week a lighter "Deload" week if there are 4 or more weeks.'}
+
+Return ONLY this JSON shape:
+{"weeks":[{"week":1,"phase":"Base","days":[{"day_offset":0,"name":"Lower Body Strength","type":"training","exercises":[{"n":"Back Squat","s":4,"r":"8","rest":"90s"}]}]}]}
+
+Rules:
+- Exactly ${weeks} week objects, "week" 1-indexed.
+- "phase" is one of: Base, Build, Peak, Deload, Taper.
+- Exactly ${daysPerWeek} day objects per week (training days only, skip rest days entirely).
+- "day_offset": 0=Monday..6=Sunday, spread sensibly with rest between sessions.
+- "type": "training" or "cardio".
+- 3-6 exercises per day, realistic sets/reps or distances for the stated equipment and level. "r" is a short rep/distance/time string like "8", "400m", "30s".
+- No text outside the JSON object.`;
+    const text=await callClaude([{role:'user',content:prompt}],sys,4000);
+    const plan=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const weekList=plan.weeks||[];
+    if(!weekList.length)throw new Error('empty plan');
+    const start=weekStartISO(new Date());
+    const rows=[];
+    weekList.forEach((w,wi)=>{
+      const weekStart=addDaysISO(start,7*wi);
+      (w.days||[]).forEach(d=>{
+        rows.push({
+          id:uid(),client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
+          scheduled_date:addDaysISO(weekStart,d.day_offset??0),
+          name:d.name||'Training',type:d.type==='cardio'?'cardio':'training',
+          dur:null,exercises:(d.exercises||[]).map(tplExToWkEx),status:'pending',
+          phase_label:`${w.phase||'Training'} — Week ${w.week||wi+1}`
+        });
+      });
+    });
+    if(!rows.length)throw new Error('no sessions generated');
+    if(!DEMO){
+      const{error}=await sb.from('assigned_workouts').insert(rows);
+      if(error){res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not save the plan: ${error.message}</p>`;return}
+      try{await sb.from('profiles').update({primary_goal:goal||PROFILE.primary_goal||null,race_date:raceDate||PROFILE.race_date||null}).eq('id',USER.id)}catch{}
+      if(PROFILE){PROFILE.primary_goal=goal||PROFILE.primary_goal;PROFILE.race_date=raceDate||PROFILE.race_date}
+      await loadMyWorkouts();
+    }else{
+      MY_WORKOUTS=(MY_WORKOUTS||[]).concat(rows);
+    }
+    closeTrainingPlanWizard();
+    renderMain();
+    toast(`${rows.length}-session, ${weekList.length}-week plan built ✓ — check your calendar`);
+  }catch(e){
+    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not generate a plan — try again${e&&e.message==='NO_KEY'?' after adding your API key in Settings':''}.</p>`;
+  }finally{btn.disabled=false;btn.textContent='Generate My Plan →'}
+}
+
 function useTemplateForMe(id){
   const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
   openWB({id:uid(),name:t.name,type:'training',scheduled_date:todayISO(),dur:t.dur,exercises:(t.ex||[]).map(tplExToWkEx)},'client-today');
@@ -1994,20 +2201,93 @@ async function sendAI(preset){
 }
 
 /* ═══ FOOD PANEL ═══ */
+/* AI-generated macro targets + a sample day of meals — NOT a food diary
+   (deliberately no manual logging). NUTRITION_PLAN is the latest row from
+   nutrition_plans, loaded in loadAppData(). */
 function foodPanel(){
-  const mac=[{l:'Calories',v:1240,t:1850,u:'kcal',c:'#F59E0B'},{l:'Protein',v:98,t:145,u:'g',c:'#3B82F6'},{l:'Carbs',v:115,t:180,u:'g',c:'#22C55E'},{l:'Fat',v:42,t:65,u:'g',c:'#EF4444'}];
-  const meals=[{n:'Breakfast',i:'Oats 80g · Whey protein 30g · Banana',cal:420,p:35},{n:'Lunch',i:'Chicken breast 180g · Rice 120g · Broccoli',cal:520,p:45},{n:'Snack',i:'Greek yoghurt 150g · Blueberries',cal:180,p:18}];
+  // prefer a real generated plan even in demo mode (generateNutritionPlan()
+  // sets NUTRITION_PLAN locally when DEMO is true, same as everywhere else
+  // in demo mode) — only fall back to the fixed sample when nothing's been
+  // generated yet, so demo users can still see the empty-state + wizard
+  const np=NUTRITION_PLAN||(DEMO?DEMO_NUTRITION:null);
+  if(!np){
+    return`<div class="card" style="text-align:center;padding:50px 24px">
+      <div style="font-size:36px;margin-bottom:12px">🥗</div>
+      <div class="ct" style="margin-bottom:6px">No Nutrition Plan Yet</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:18px;max-width:360px;margin-left:auto;margin-right:auto">Answer a few questions and FORGE AI will build you a target macro breakdown and a sample day of meals, matched to your training.</div>
+      <button class="btn-p" style="width:auto;padding:11px 22px" onclick="openNutritionWizard()">🤖 Build My Nutrition Plan</button>
+    </div>`;
+  }
+  const mac=[{l:'Calories',v:np.daily_kcal,u:'kcal',c:'#F59E0B'},{l:'Protein',v:np.protein_g,u:'g',c:'#3B82F6'},{l:'Carbs',v:np.carbs_g,u:'g',c:'#22C55E'},{l:'Fat',v:np.fat_g,u:'g',c:'#EF4444'}];
+  const meals=np.meals||[];
   return`<div class="card">
-    <div class="ct">Nutrition · Today</div>
-    <div class="mgrid">${mac.map(m=>`<div class="mc"><div class="mv">${m.v}<span style="font-size:11px;color:var(--muted)">${m.u}</span></div><div class="ml2">${m.l}</div><div style="font-size:10px;color:var(--muted);margin-top:2px">/ ${m.t}${m.u}</div><div class="mbar"><div class="mbf" style="width:${Math.min(100,Math.round(m.v/m.t*100))}%;background:${m.c}"></div></div></div>`).join('')}</div>
-    <div class="g2" style="margin-bottom:14px">
-      <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Remaining</div><div style="font-size:18px;font-weight:700;font-family:var(--df)">610 <span style="font-size:12px;color:var(--muted)">kcal</span></div></div>
-      <div style="background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px 14px"><div style="font-size:11px;color:var(--muted);margin-bottom:3px">Protein left</div><div style="font-size:18px;font-weight:700;font-family:var(--df)">47<span style="font-size:12px;color:var(--muted)">g</span></div></div>
+    <div class="ctr">
+      <div><div class="ct" style="margin-bottom:2px">🥗 Your Nutrition Plan${np.phase?` · <span style="color:var(--amber)">${np.phase}</span>`:''}</div><div style="font-size:11px;color:var(--muted)">${np.goal||'General fitness'}${np.dietary_pref&&np.dietary_pref!=='none'?' · '+np.dietary_pref:''}</div></div>
+      <button class="iconbtn" onclick="openNutritionWizard()">🔄 Regenerate</button>
     </div>
-    <div class="ct" style="margin-bottom:10px">Today's Meals</div>
-    ${meals.map(m=>`<div class="mealc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text);text-transform:uppercase">${m.n}</div><div style="font-size:12px;color:var(--amber);font-weight:600">${m.cal} kcal · ${m.p}g protein</div></div><div style="font-size:12px;color:var(--muted)">${m.i}</div></div>`).join('')}
-    <button style="width:100%;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:10px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;margin-top:8px" onclick="toast('Food logging — coming soon')">+ Log Food</button>
+    <div class="mgrid">${mac.map(m=>`<div class="mc"><div class="mv">${m.v||'—'}<span style="font-size:11px;color:var(--muted)">${m.u}</span></div><div class="ml2">${m.l}</div></div>`).join('')}</div>
+    <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:14px 0 10px">Sample Day of Meals</div>
+    ${meals.length?meals.map(m=>`<div class="mealc"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-size:12px;font-weight:700;letter-spacing:.5px;color:var(--text);text-transform:uppercase">${m.meal||m.n||'Meal'}</div><div style="font-size:12px;color:var(--amber);font-weight:600">${m.kcal||'?'} kcal · ${m.protein_g||m.p||'?'}g protein</div></div><div style="font-size:12px;color:var(--muted)">${m.items||m.i||''}</div></div>`).join(''):'<p style="font-size:12px;color:var(--muted)">No sample meals in this plan.</p>'}
+    ${np.race_week_notes?`<div class="abox" style="margin-top:14px"><div class="ablbl">🏁 Race Week Fueling</div><div class="abtxt">${np.race_week_notes}</div></div>`:''}
+    ${np.ai_notes?`<div class="abox" style="margin-top:10px"><div class="ablbl">⚡ FORGE AI Notes</div><div class="abtxt">${np.ai_notes}</div></div>`:''}
+    <div style="font-size:10px;color:var(--muted);margin-top:14px;text-align:center">This is a generated guide, not medical or dietetic advice — check with a professional for any medical condition.</div>
   </div>`;
+}
+/* fixed sample plan shown in Try Demo mode so the tab isn't empty */
+const DEMO_NUTRITION={goal:'General fitness',dietary_pref:'none',phase:'Base',daily_kcal:2200,protein_g:150,carbs_g:230,fat_g:70,
+  meals:[{meal:'Breakfast',items:'Oats 80g, whey protein 30g, banana',kcal:420,protein_g:35},{meal:'Lunch',items:'Chicken breast 180g, rice 150g, mixed veg',kcal:620,protein_g:48},{meal:'Snack',items:'Greek yoghurt 150g, berries, almonds',kcal:280,protein_g:20},{meal:'Dinner',items:'Salmon 180g, sweet potato, broccoli',kcal:650,protein_g:42}],
+  race_week_notes:'',ai_notes:'This is a demo plan — connect your account and hit "Build My Nutrition Plan" for one generated around your real goals.'};
+
+function openNutritionWizard(){
+  gi('npResult').innerHTML='';
+  const prev=NUTRITION_PLAN;
+  if(prev?.goal)gi('npGoal').value=prev.goal;
+  if(prev?.dietary_pref)gi('npDiet').value=prev.dietary_pref;
+  if(PROFILE?.race_date)gi('npRaceDate').value=PROFILE.race_date;
+  gi('npGoBtn').disabled=false;gi('npGoBtn').textContent='Generate My Plan →';
+  gi('npOv').classList.add('open');
+}
+function closeNutritionWizard(){gi('npOv').classList.remove('open')}
+
+async function generateNutritionPlan(){
+  const goal=gi('npGoal').value,dietaryPref=gi('npDiet').value,weight=gi('npWeight').value.trim(),
+    activity=gi('npActivity').value,raceDate=gi('npRaceDate').value||null;
+  const res=gi('npResult');res.innerHTML='';
+  if(!apiKey()){res.innerHTML=`<p style="font-size:12px;color:var(--muted);margin-top:10px">Add your Anthropic API key in Settings to use the AI nutrition planner.</p>`;return}
+  const btn=gi('npGoBtn');btn.disabled=true;btn.textContent='Building your plan…';
+  try{
+    const dietLabel=dietaryPref==='none'?'no dietary restrictions':dietaryPref;
+    const activityLabel=activity==='high'?'training 6-7x/week':activity==='light'?'training 1-2x/week':'training 3-5x/week';
+    const sys=`You are FORGE AI, a coach giving general sports-nutrition guidance (not medical advice). Return ONLY raw JSON, no markdown fences, no commentary.`;
+    const prompt=`Build a nutrition plan for an athlete. Goal: "${goal}". Dietary preference: ${dietLabel}. ${weight?`Current weight: ${weight}kg. `:''}Activity: ${activityLabel}. ${raceDate?`Target event date: ${raceDate} — periodize the phase as Base, Build, Peak, or Taper based on how far out that is (assume today's phase), and include short race-week carb-loading/hydration notes.`:'No fixed event date — use phase "General".'}
+
+Return ONLY this JSON shape:
+{"phase":"Base","daily_kcal":2400,"protein_g":160,"carbs_g":260,"fat_g":75,"meals":[{"meal":"Breakfast","items":"short description matching the dietary preference","kcal":450,"protein_g":35}],"race_week_notes":"2-3 sentences, empty string if no race date given","ai_notes":"1-2 sentences of practical guidance"}
+
+Rules:
+- Exactly 4 meals (Breakfast, Lunch, Dinner, Snack), realistic and respecting the dietary preference.
+- Macros should roughly sum: protein_g*4 + carbs_g*4 + fat_g*9 ≈ daily_kcal.
+- No text outside the JSON object.`;
+    const text=await callClaude([{role:'user',content:prompt}],sys,1200);
+    const plan=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const row={client_id:USER.id,coach_id:PROFILE?.coach_id||null,goal,dietary_pref:dietaryPref,
+      phase:plan.phase||'General',daily_kcal:plan.daily_kcal||null,protein_g:plan.protein_g||null,
+      carbs_g:plan.carbs_g||null,fat_g:plan.fat_g||null,meals:plan.meals||[],
+      race_week_notes:plan.race_week_notes||'',ai_notes:plan.ai_notes||''};
+    if(!DEMO){
+      const{data,error}=await sb.from('nutrition_plans').insert(row).select().single();
+      if(error){res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not save the plan: ${error.message}</p>`;return}
+      NUTRITION_PLAN=data;
+      if(raceDate&&PROFILE){try{await sb.from('profiles').update({race_date:raceDate}).eq('id',USER.id);PROFILE.race_date=raceDate}catch{}}
+    }else{
+      NUTRITION_PLAN=row;
+    }
+    closeNutritionWizard();
+    renderMain();
+    toast('Nutrition plan generated ✓');
+  }catch(e){
+    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not generate a plan — try again${e&&e.message==='NO_KEY'?' after adding your API key in Settings':''}.</p>`;
+  }finally{btn.disabled=false;btn.textContent='Generate My Plan →'}
 }
 
 /* ═══ CHECK-IN PANEL ═══ */
@@ -2140,6 +2420,101 @@ function findWorkoutById(id){
   return MY_WORKOUTS.find(w=>w.id===id) || CLIENTS.flatMap(c=>c._workouts||[]).find(w=>w.id===id) || (SEL_WB_SOURCE&&SEL_WB_SOURCE.id===id?SEL_WB_SOURCE:null);
 }
 let SEL_WB_SOURCE=null; // whichever workout list the logger/builder is currently pointed at
+
+/* ═══ WORKOUT OVERVIEW ═══ tapping a day's workout card name opens this
+   read-only run-down first (instead of dropping straight into logging), so
+   the client can see the whole session before committing — then either
+   Start Workout (guided player below) or just Close and log exercises
+   individually the old way. */
+let WO_WK_ID=null;
+function openWorkoutOverview(workoutId){
+  const wk=findWorkoutById(workoutId);if(!wk)return;
+  WO_WK_ID=workoutId;
+  const exList=wk.exercises||[];
+  const doneCt=exList.filter(e=>e.done).length;
+  gi('woName').textContent=wk.name;
+  gi('woMeta').textContent=`${exList.length} exercise${exList.length===1?'':'s'} · ~${wk.dur||'?'} min${wk.status==='done'?' · ✅ Completed':''}`;
+  gi('woCont').innerHTML=exList.length?exList.map(ex=>`<div class="exr ${ex.done?'done':''}">
+      ${thumbHtml(ex.cat,ex.photo,'sm')}
+      <div style="flex:1;min-width:0"><div class="exname">${ex.n}</div><div class="exmeta">${exMetaLabel(ex)}${ex.rest?` · Rest ${ex.rest}`:''}</div></div>
+      ${ex.done?'<span style="color:var(--green);font-size:14px">✓</span>':''}
+    </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">No exercises yet — close this and tap ✏️ Edit to add some.</p>`;
+  const btn=gi('woStartBtn');
+  btn.disabled=!exList.length;
+  btn.textContent=!exList.length?'Nothing to start yet':wk.status==='done'?'↻ Redo Workout':(doneCt>0?'▶️ Resume Workout':'▶️ Start Workout');
+  gi('woOv').classList.add('open');
+}
+function closeWO(){gi('woOv').classList.remove('open');WO_WK_ID=null}
+function startWorkoutFromOverview(){
+  const id=WO_WK_ID;if(!id)return;
+  closeWO();
+  startGuidedWorkout(id);
+}
+
+/* ═══ GUIDED WORKOUT PLAYER ═══ "Start Workout" runs a 3-2-1-GO countdown,
+   then auto-advances through each exercise (via the existing Set Logger)
+   with a rest/"up next" transition in between — no need to back out to the
+   day view and tap the next exercise manually. See closeSL() for the
+   auto-advance hookup and openGuidedTransition() for the rest screen. */
+let GUIDED_MODE=false,gwCountdownTimer=null,gwRestTimer=null;
+function startGuidedWorkout(workoutId){
+  const wk=findWorkoutById(workoutId);if(!wk)return;
+  const firstIdx=wk.exercises.findIndex(e=>!e.done);
+  if(firstIdx<0){toast('Every exercise here is already logged ✓');return}
+  GUIDED_MODE=true;
+  runGuidedCountdown(()=>openSL(workoutId,firstIdx));
+}
+function runGuidedCountdown(onDone){
+  if(gwCountdownTimer){clearInterval(gwCountdownTimer);gwCountdownTimer=null}
+  gi('gwTransWrap').style.display='none';gi('gwCountWrap').style.display='block';
+  const seq=['3','2','1','GO!'];let i=0;
+  gi('gwCountNum').textContent=seq[0];
+  gi('gwOv').classList.add('open');
+  gwCountdownTimer=setInterval(()=>{
+    i++;
+    if(i>=seq.length){
+      clearInterval(gwCountdownTimer);gwCountdownTimer=null;
+      gi('gwOv').classList.remove('open');
+      onDone();
+      return;
+    }
+    gi('gwCountNum').textContent=seq[i];
+  },700);
+}
+/* Between exercises: shows a brief rest/"up next" screen instead of dropping
+   back to the day view, then auto-opens the Set Logger for the next
+   un-logged exercise. Uses the just-finished exercise's own rest value as
+   the inter-exercise rest (falls back to a 20s default) — always skippable. */
+function openGuidedTransition(wk,finishedEx,nextIdx){
+  const nextEx=wk.exercises[nextIdx];
+  let remain=parseRestSeconds(finishedEx.rest)||20;
+  gi('gwDoneName').textContent=finishedEx.n;
+  gi('gwNextName').textContent=nextEx.n;
+  gi('gwNextMeta').textContent=exMetaLabel(nextEx);
+  gi('gwCountWrap').style.display='none';gi('gwTransWrap').style.display='block';
+  const advance=()=>{
+    if(gwRestTimer){clearInterval(gwRestTimer);gwRestTimer=null}
+    gi('gwOv').classList.remove('open');
+    gi('gwTransWrap').style.display='none';gi('gwCountWrap').style.display='block';
+    openSL(wk.id,nextIdx);
+  };
+  gi('gwSkipBtn').onclick=advance;
+  gi('gwRestTime').textContent=fmtRestClock(remain);
+  gi('gwOv').classList.add('open');
+  if(gwRestTimer){clearInterval(gwRestTimer);gwRestTimer=null}
+  gwRestTimer=setInterval(()=>{
+    remain--;
+    if(remain<=0){advance();return}
+    gi('gwRestTime').textContent=fmtRestClock(remain);
+  },1000);
+}
+function cancelGuidedWorkout(){
+  if(gwCountdownTimer){clearInterval(gwCountdownTimer);gwCountdownTimer=null}
+  if(gwRestTimer){clearInterval(gwRestTimer);gwRestTimer=null}
+  GUIDED_MODE=false;
+  gi('gwOv').classList.remove('open');
+  gi('gwTransWrap').style.display='none';gi('gwCountWrap').style.display='block';
+}
 
 function openSL(workoutId,exIdx){
   const wk=findWorkoutById(workoutId);if(!wk)return;
@@ -2384,6 +2759,14 @@ async function closeSL(done){
       try{await sb.from('assigned_workouts').update({exercises:wk.exercises,status:wk.status}).eq('id',wk.id)}catch{}
     }
     gi('slOv').classList.remove('open');curEx=null;
+    // GUIDED WORKOUT PLAYER: rather than dropping back to the day view after
+    // each exercise, auto-advance through a short rest/"up next" transition
+    // into the next un-logged exercise until the whole session is done.
+    if(GUIDED_MODE&&!allDone){
+      const nextIdx=wk.exercises.findIndex(e=>!e.done);
+      if(nextIdx>=0){openGuidedTransition(wk,ex,nextIdx);return}
+    }
+    GUIDED_MODE=false;
     if(allDone){
       const pbs=PB_BY_WK[wk.id]||[];delete PB_BY_WK[wk.id];
       const milestone=await checkMilestone();
@@ -2392,6 +2775,7 @@ async function closeSL(done){
       return;
     }
   }
+  GUIDED_MODE=false;
   gi('slOv').classList.remove('open');curEx=null;renderMain();
 }
 
