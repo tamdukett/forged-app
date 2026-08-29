@@ -412,6 +412,16 @@ html,body{overflow-x:hidden;max-width:100vw}
       <button class="btn-p" onclick="verifyLoginCode()" id="loginVerifyBtn">Verify & sign in →</button>
       <div class="auth-footer"><a href="#" onclick="backToLoginEmail();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Use a different email</a></div>
     </div>
+    <div id="loginStepPw" style="display:none">
+      <div class="auth-heading">Coach sign-in</div>
+      <p class="auth-note">Signing in as <strong id="loginEmailConfirmPw"></strong> — enter your password.</p>
+      <div class="field"><label>Password</label>
+        <div style="position:relative"><input class="fi" id="loginCoachPw" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doCoachPasswordLogin()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('loginCoachPw',this)">👁️</button></div>
+      </div>
+      <div class="aerr" id="loginPwError"></div>
+      <button class="btn-p" onclick="doCoachPasswordLogin()" id="loginPwBtn">Sign in →</button>
+      <div class="auth-footer"><a href="#" onclick="backToLoginEmail();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Use a different email</a></div>
+    </div>
     <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 
@@ -900,12 +910,32 @@ function applyInviteFromURL(){
     gi('suName').focus();
   }catch{}
 }
-/* ─── LOGIN (passwordless — email OTP) ─── */
+function togglePwVis(id,btn){
+  const inp=gi(id);if(!inp)return;
+  const show=inp.type==='password';
+  inp.type=show?'text':'password';
+  btn.textContent=show?'🙈':'👁️';
+}
+
+/* ─── LOGIN (passwordless — email OTP, except one hardcoded coach email
+   that gets a password step instead, so the coach is never blocked
+   waiting on an email arriving). Note: routing on the email address here
+   is not itself a security boundary — that email's ACTUAL access is
+   still fully gated by Supabase verifying a real password against the
+   account's stored hash, exactly like any other password sign-in. ─── */
+const COACH_PASSWORD_EMAIL='tam.dukett@gmail.com';
 let PENDING_LOGIN_EMAIL='';
 async function sendLoginCode(){
   const email=gi('loginEmail').value.trim();
   if(!email){showErr('loginError','Please enter your email.');return}
   clrErr('loginError');
+  if(email.toLowerCase()===COACH_PASSWORD_EMAIL){
+    PENDING_LOGIN_EMAIL=email;
+    gi('loginEmailConfirmPw').textContent=email;
+    gi('loginStep1').style.display='none';gi('loginStepPw').style.display='block';
+    gi('loginCoachPw').focus();
+    return;
+  }
   const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Sending…';
   try{
     const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
@@ -928,10 +958,23 @@ async function verifyLoginCode(){
     USER=data.user;await loadProfile();
   }finally{btn.disabled=false;btn.textContent='Verify & sign in →'}
 }
+async function doCoachPasswordLogin(){
+  const pw=gi('loginCoachPw').value;
+  if(!pw){showErr('loginPwError','Please enter your password.');return}
+  clrErr('loginPwError');
+  const btn=gi('loginPwBtn');btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const{data,error}=await sb.auth.signInWithPassword({email:PENDING_LOGIN_EMAIL,password:pw});
+    if(error){showErr('loginPwError',error.message==='Invalid login credentials'?'Incorrect password.':error.message);return}
+    USER=data.user;await loadProfile();
+  }finally{btn.disabled=false;btn.textContent='Sign in →'}
+}
 function backToLoginEmail(){
-  const s1=gi('loginStep1'),s2=gi('loginStep2');if(!s1||!s2)return;
-  s1.style.display='block';s2.style.display='none';
-  gi('loginOtp').value='';clrErr('loginOtpError');PENDING_LOGIN_EMAIL='';
+  const s1=gi('loginStep1'),s2=gi('loginStep2'),sp=gi('loginStepPw');if(!s1||!s2||!sp)return;
+  s1.style.display='block';s2.style.display='none';sp.style.display='none';
+  gi('loginOtp').value='';clrErr('loginOtpError');
+  gi('loginCoachPw').value='';clrErr('loginPwError');
+  PENDING_LOGIN_EMAIL='';
 }
 
 /* ─── SIGN UP (passwordless — email OTP + full training-profile intake) ─── */
