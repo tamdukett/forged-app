@@ -396,15 +396,22 @@ html,body{overflow-x:hidden;max-width:100vw}
       <button class="authtab active" id="atLogin" onclick="showAuthTab('login')">Sign In</button>
       <button class="authtab" id="atSignup" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
-    <div class="auth-heading">Welcome back</div>
-    <p class="auth-note">Sign in with your email and password.</p>
-    <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <div class="field"><label>Password</label>
-      <div style="position:relative"><input class="fi" id="loginPassword" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('loginPassword',this)">👁️</button></div>
+    <div id="loginStep1">
+      <div class="auth-heading">Welcome back</div>
+      <p class="auth-note">Enter your email — we'll send you a 6-digit code, no password needed.</p>
+      <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')sendLoginCode()"></div>
+      <div class="aerr" id="loginError"></div>
+      <button class="btn-p" onclick="sendLoginCode()" id="loginBtn">Send code →</button>
+      <div class="auth-footer">New here? Use the Sign Up tab above.</div>
     </div>
-    <div class="aerr" id="loginError"></div>
-    <button class="btn-p" onclick="doLogin()" id="loginBtn">Sign in →</button>
-    <div class="auth-footer">New here? Use the Sign Up tab above. Forgot your password? Ask your coach to reset it.</div>
+    <div id="loginStep2" style="display:none">
+      <div class="auth-heading">Check your email</div>
+      <p class="auth-note">Enter the 6-digit code we just sent to <strong id="loginEmailConfirm"></strong>.</p>
+      <div class="field"><label>6-digit code</label><input class="fi" id="loginOtp" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" onkeydown="if(event.key==='Enter')verifyLoginCode()"></div>
+      <div class="aerr" id="loginOtpError"></div>
+      <button class="btn-p" onclick="verifyLoginCode()" id="loginVerifyBtn">Verify & sign in →</button>
+      <div class="auth-footer"><a href="#" onclick="backToLoginEmail();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Use a different email</a></div>
+    </div>
     <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 
@@ -415,16 +422,11 @@ html,body{overflow-x:hidden;max-width:100vw}
       <button class="authtab" onclick="showAuthTab('login')">Sign In</button>
       <button class="authtab active" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
-    <div class="auth-heading">Create your account</div>
+    <div id="suStep1">
+      <div class="auth-heading">Create your account</div>
       <p class="auth-note" id="suNote">Enter your details to get started as a client.</p>
       <div class="field"><label>Full name</label><input class="fi" id="suName" placeholder="Your name"></div>
       <div class="field"><label>Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com"></div>
-      <div class="field"><label>Password</label>
-        <div style="position:relative"><input class="fi" id="suPassword" type="password" placeholder="At least 8 characters" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword',this)">👁️</button></div>
-      </div>
-      <div class="field"><label>Confirm password</label>
-        <div style="position:relative"><input class="fi" id="suPassword2" type="password" placeholder="Repeat your password" style="padding-right:42px" onkeydown="if(event.key==='Enter')doSignup()"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword2',this)">👁️</button></div>
-      </div>
       <div id="suRoleBlock" style="display:none">
         <div class="field"><label>I am a…</label>
           <div class="seg">
@@ -469,8 +471,17 @@ html,body{overflow-x:hidden;max-width:100vw}
 
       <div class="aerr" id="suError"></div>
       <div class="aok" id="suOk"></div>
-      <button class="btn-p" onclick="doSignup()" id="suBtn">Create account →</button>
+      <button class="btn-p" onclick="sendSignupCode()" id="suBtn">Send code →</button>
       <div class="auth-footer"><a href="#" id="suCoachToggle" onclick="toggleCoachSignup(event)" style="color:var(--muted);text-decoration:underline;cursor:pointer">Are you a coach?</a></div>
+    </div>
+    <div id="suStep2" style="display:none">
+      <div class="auth-heading">Check your email</div>
+      <p class="auth-note">Enter the 6-digit code we just sent to <strong id="suEmailConfirm"></strong>.</p>
+      <div class="field"><label>6-digit code</label><input class="fi" id="suOtp" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" onkeydown="if(event.key==='Enter')verifySignupCode()"></div>
+      <div class="aerr" id="suOtpError"></div>
+      <button class="btn-p" onclick="verifySignupCode()" id="suVerifyBtn">Verify & create account →</button>
+      <div class="auth-footer"><a href="#" onclick="backToSignupForm();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Back</a></div>
+    </div>
     <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 </div>
@@ -853,6 +864,8 @@ function showAuthTab(which){
   gi('signupCard').style.display=which==='signup'?'block':'none';
   gi('atLogin').classList.toggle('active',which==='login');
   gi('atSignup').classList.toggle('active',which==='signup');
+  // reset any mid-OTP state so switching tabs never leaves a stale code screen
+  backToLoginEmail();backToSignupForm();
 }
 function setSuRole(role){
   suRole=role;
@@ -887,34 +900,47 @@ function applyInviteFromURL(){
     gi('suName').focus();
   }catch{}
 }
-function togglePwVis(id,btn){
-  const inp=gi(id);if(!inp)return;
-  const show=inp.type==='password';
-  inp.type=show?'text':'password';
-  btn.textContent=show?'🙈':'👁️';
-}
-
-/* ─── LOGIN ─── */
-async function doLogin(){
-  const email=gi('loginEmail').value.trim(),pw=gi('loginPassword').value;
-  if(!email||!pw){showErr('loginError','Please enter your email and password.');return}
+/* ─── LOGIN (passwordless — email OTP) ─── */
+let PENDING_LOGIN_EMAIL='';
+async function sendLoginCode(){
+  const email=gi('loginEmail').value.trim();
+  if(!email){showErr('loginError','Please enter your email.');return}
   clrErr('loginError');
-  const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Signing in…';
+  const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Sending…';
   try{
-    const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
-    if(error){showErr('loginError',error.message==='Invalid login credentials'?"Email or password is incorrect — ask your coach to reset it if you're not sure.":error.message);return}
+    const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+    if(error){showErr('loginError',/signups not allowed|user not found|not found/i.test(error.message)?'No account found for that email — use Sign Up instead.':error.message);return}
+    PENDING_LOGIN_EMAIL=email;
+    gi('loginEmailConfirm').textContent=email;
+    gi('loginStep1').style.display='none';gi('loginStep2').style.display='block';
+    gi('loginOtp').focus();
+    toast('Code sent — check your email 📧');
+  }finally{btn.disabled=false;btn.textContent='Send code →'}
+}
+async function verifyLoginCode(){
+  const token=gi('loginOtp').value.trim();
+  if(!token){showErr('loginOtpError','Please enter the code from your email.');return}
+  clrErr('loginOtpError');
+  const btn=gi('loginVerifyBtn');btn.disabled=true;btn.textContent='Verifying…';
+  try{
+    const{data,error}=await sb.auth.verifyOtp({email:PENDING_LOGIN_EMAIL,token,type:'email'});
+    if(error){showErr('loginOtpError',error.message);return}
     USER=data.user;await loadProfile();
-  }finally{btn.disabled=false;btn.textContent='Sign in →'}
+  }finally{btn.disabled=false;btn.textContent='Verify & sign in →'}
+}
+function backToLoginEmail(){
+  const s1=gi('loginStep1'),s2=gi('loginStep2');if(!s1||!s2)return;
+  s1.style.display='block';s2.style.display='none';
+  gi('loginOtp').value='';clrErr('loginOtpError');PENDING_LOGIN_EMAIL='';
 }
 
-/* ─── SIGN UP (password + full training-profile intake) ─── */
-async function doSignup(){
-  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim(),pw=gi('suPassword').value,pw2=gi('suPassword2').value;
+/* ─── SIGN UP (passwordless — email OTP + full training-profile intake) ─── */
+let PENDING_SIGNUP=null; // {name,email,role,coachId,disciplines,level,equip,injuries}
+async function sendSignupCode(){
+  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim();
   const code=gi('suCode').value.trim().toUpperCase();
   clrErr('suError');gi('suOk').classList.remove('show');
-  if(!name||!email||!pw){showErr('suError','Please fill in your name, email, and password.');return}
-  if(pw.length<8){showErr('suError','Password must be at least 8 characters.');return}
-  if(pw!==pw2){showErr('suError','Passwords do not match.');return}
+  if(!name||!email){showErr('suError','Please fill in your name and email.');return}
   if(suRole==='coach'&&code!==COACH_SETUP_CODE){showErr('suError','Incorrect coach setup code.');return}
   let coachId=null;
   if(suRole==='client'){
@@ -935,25 +961,41 @@ async function doSignup(){
   const level=suRole==='client'?gi('suLevel').value:null;
   const equip=suRole==='client'?gi('suEquip').value:null;
   const injuries=suRole==='client'?gi('suInjuries').value.trim():'';
-  const btn=gi('suBtn');btn.disabled=true;btn.textContent='Creating account…';
+  const btn=gi('suBtn');btn.disabled=true;btn.textContent='Sending…';
   try{
-    const{data,error}=await sb.auth.signUp({email,password:pw});
+    const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,data:{full_name:name}}});
     if(error){showErr('suError',error.message);return}
+    PENDING_SIGNUP={name,email,role:suRole,coachId,disciplines,level,equip,injuries};
+    gi('suEmailConfirm').textContent=email;
+    gi('suStep1').style.display='none';gi('suStep2').style.display='block';
+    gi('suOtp').focus();
+  }finally{btn.disabled=false;btn.textContent='Send code →'}
+}
+async function verifySignupCode(){
+  if(!PENDING_SIGNUP)return;
+  const token=gi('suOtp').value.trim();
+  if(!token){showErr('suOtpError','Please enter the code from your email.');return}
+  clrErr('suOtpError');
+  const btn=gi('suVerifyBtn');btn.disabled=true;btn.textContent='Verifying…';
+  try{
+    const{data,error}=await sb.auth.verifyOtp({email:PENDING_SIGNUP.email,token,type:'email'});
+    if(error){showErr('suOtpError',error.message);return}
     const newUser=data.user;
-    if(!newUser){showErr('suError','Something went wrong creating your account.');return}
+    if(!newUser){showErr('suOtpError','Something went wrong creating your account.');return}
+    const{name,role,coachId,disciplines,level,equip,injuries}=PENDING_SIGNUP;
     const{error:pErr}=await sb.from('profiles').upsert({
-      id:newUser.id,email,full_name:name,role:suRole==='coach'?'trainer':'client',
+      id:newUser.id,email:PENDING_SIGNUP.email,full_name:name,role:role==='coach'?'trainer':'client',
       coach_id:coachId,units:'metric',
       disciplines,fitness_level:level,equipment_notes:equip,injuries:injuries||null
     },{onConflict:'id'});
-    if(pErr){showErr('suError','Account created but profile setup failed: '+pErr.message);return}
-    if(data.session){
-      USER=newUser;await loadProfile();
-    }else{
-      showOk('suOk','Account created! Check your email to confirm, then sign in.');
-      setTimeout(()=>showAuthTab('login'),1800);
-    }
-  }finally{btn.disabled=false;btn.textContent='Create account →'}
+    if(pErr){showErr('suOtpError','Account verified but profile setup failed: '+pErr.message);return}
+    USER=newUser;PENDING_SIGNUP=null;await loadProfile();
+  }finally{btn.disabled=false;btn.textContent='Verify & create account →'}
+}
+function backToSignupForm(){
+  const s1=gi('suStep1'),s2=gi('suStep2');if(!s1||!s2)return;
+  s1.style.display='block';s2.style.display='none';
+  gi('suOtp').value='';clrErr('suOtpError');PENDING_SIGNUP=null;
 }
 
 async function loadProfile(){
@@ -1760,18 +1802,6 @@ function settingsPanel(){
       <button class="btn-p" onclick="saveProfileSettings()">Save Profile</button>
     </div>
     <div class="card">
-      <div class="ct">🔒 Password</div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:10px">${isT?"Change your own login password.":"Change the password your coach set for you — or set a new one any time."}</p>
-      <div class="field"><label>New password</label>
-        <div style="position:relative"><input class="fi" id="stNewPw" type="password" placeholder="At least 8 characters" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('stNewPw',this)">👁️</button></div>
-      </div>
-      <div class="field"><label>Confirm new password</label>
-        <div style="position:relative"><input class="fi" id="stNewPw2" type="password" placeholder="Repeat new password" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('stNewPw2',this)">👁️</button></div>
-      </div>
-      <div class="aerr" id="stPwError"></div>
-      <button class="btn-p" onclick="changePassword()">Update Password</button>
-    </div>
-    <div class="card">
       <div class="ct">🎨 Appearance</div>
       <p style="font-size:12px;color:var(--muted);margin-bottom:10px">Applies to this device only.</p>
       <div class="unit-toggle">
@@ -1846,19 +1876,6 @@ async function saveProfileSettings(){
     await sb.from('profiles').update(patch).eq('id',USER.id);
   }
   toast('Profile saved ✓');renderSB();
-}
-async function changePassword(){
-  const pw=gi('stNewPw').value,pw2=gi('stNewPw2').value;
-  clrErr('stPwError');
-  if(!pw||pw.length<8){showErr('stPwError','Password must be at least 8 characters.');return}
-  if(pw!==pw2){showErr('stPwError','Passwords do not match.');return}
-  if(DEMO){toast('Password updated ✓ (demo mode — not actually saved)');gi('stNewPw').value='';gi('stNewPw2').value='';return}
-  try{
-    const{error}=await sb.auth.updateUser({password:pw});
-    if(error){showErr('stPwError',error.message);return}
-    gi('stNewPw').value='';gi('stNewPw2').value='';
-    toast('Password updated ✓');
-  }catch(e){showErr('stPwError','Could not update password: '+e.message)}
 }
 async function setUnits(u){
   PROFILE.units=u;
