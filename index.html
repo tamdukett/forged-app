@@ -1026,9 +1026,13 @@ async function verifySignupCode(){
     const newUser=data.user;
     if(!newUser){showErr('suOtpError','Something went wrong creating your account.');return}
     const{name,role,coachId,disciplines,level,equip,injuries}=PENDING_SIGNUP;
+    // Trainers self-reference coach_id so their own account can also show up
+    // in their own client roster (loadClientRoster just filters profiles by
+    // coach_id === the logged-in coach's id) — lets a coach use "Client Me"
+    // view and see their own training listed alongside real clients.
     const{error:pErr}=await sb.from('profiles').upsert({
       id:newUser.id,email:PENDING_SIGNUP.email,full_name:name,role:role==='coach'?'trainer':'client',
-      coach_id:coachId,units:'metric',
+      coach_id:role==='coach'?newUser.id:coachId,units:'metric',
       disciplines,fitness_level:level,equipment_notes:equip,injuries:injuries||null
     },{onConflict:'id'});
     if(pErr){showErr('suOtpError','Account verified but profile setup failed: '+pErr.message);return}
