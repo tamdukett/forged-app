@@ -1178,7 +1178,7 @@ async function loadClientRoster(){
       const trainable=wks.filter(w=>w.type==='training'||w.type==='cardio');
       const done=trainable.filter(w=>w.status==='done').length;
       const comp=trainable.length?Math.round(done/trainable.length*100):0;
-      return{id:c.id,name:c.full_name||c.email,ini:ini(c.full_name||c.email||'?'),
+      return{id:c.id,name:c.full_name||c.email,fullName:c.full_name||'',ini:ini(c.full_name||c.email||'?'),
         col:['#8B5CF6','#06B6D4','#F59E0B','#22C55E','#EF4444'][Math.abs(hashStr(c.id))%5],
         plan:'—',comp,sessDone:done,sessTotal:trainable.length,streak:0,
         status:!trainable.length?'active':comp>=70?'active':comp>=40?'warning':'danger',
@@ -2784,7 +2784,7 @@ function rClientDetail(c){
   const wks=(c._workouts||[]).slice().sort((a,b)=>a.scheduled_date<b.scheduled_date?-1:1);
   const completed=wks.filter(w=>w.status==='done');
   return`<div class="card">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">${av(c.ini,c.col,46)}<div><div style="font-family:var(--df);font-size:20px;font-weight:700;letter-spacing:1px">${c.name}</div><div style="font-size:12px;color:var(--muted)">${c.email||''}</div></div></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">${av(c.ini,c.col,46)}<div style="flex:1;min-width:0"><div style="display:flex;align-items:center;gap:8px"><div style="font-family:var(--df);font-size:20px;font-weight:700;letter-spacing:1px">${c.name}</div><button class="iconbtn" onclick="renameClient('${c.id}')" title="Rename this client">✏️</button></div><div style="font-size:12px;color:var(--muted)">${c.email||''}</div></div></div>
     <div class="g4" style="margin-bottom:14px">${[{l:'This Week',v:(c.sessDone||0)+'/'+(c.sessTotal||0)},{l:'Compliance',v:c.comp+'%'},{l:'Units',v:(c.units==='imperial'?'lb/mi':'kg/km')},{l:'Completed',v:String(completed.length)}].map(s=>`<div class="smi"><div class="sv" style="font-size:22px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button onclick="openPB('${c.id}')" style="background:var(--amber);border:none;border-radius:8px;padding:8px 14px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">📋 Edit Weekly Plan</button>
@@ -2828,6 +2828,21 @@ function rClientDetail(c){
     </div>`).join('')}
   </div>`:''}
   ${rProgress(c.id)}`;
+}
+
+/* Lets the coach set/fix a client's display name (profiles.full_name) so the
+   roster shows real names instead of falling back to their email address. */
+async function renameClient(cid){
+  const c=CLIENTS.find(x=>x.id===cid);if(!c)return;
+  const name=(prompt("Client's full name:",c.fullName||'')||'').trim();
+  if(!name)return;
+  const prevName=c.name,prevFull=c.fullName,prevIni=c.ini;
+  c.name=name;c.fullName=name;c.ini=ini(name);
+  if(!DEMO){
+    const{error}=await sb.from('profiles').update({full_name:name}).eq('id',cid);
+    if(error){c.name=prevName;c.fullName=prevFull;c.ini=prevIni;toast('Could not save name: '+error.message);return}
+  }
+  renderMain();toast(`Renamed to "${name}" ✓`);
 }
 
 /* ── CATALOG ── */
@@ -3077,6 +3092,15 @@ function renderPB(){
         <button onclick="genPBPlan()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;height:40px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer;white-space:nowrap">Generate</button>
       </div>
     </div>
+    <div class="abox" style="margin-bottom:14px">
+      <div class="ablbl">🔁 Repeat This Week's Plan</div>
+      <div style="font-size:11px;color:var(--muted);margin:4px 0 8px">Build out the days below, then set how many weeks total this same plan should run for — it'll copy the same days onto every following week.</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <input class="fi" id="pbRepeatWeeks" type="number" min="2" max="52" value="4" style="width:70px">
+        <span style="font-size:11px;color:var(--muted)">weeks total</span>
+        <button onclick="repeatPBWeeks()" style="background:var(--amber);border:none;border-radius:8px;padding:0 14px;height:36px;font-weight:700;font-size:12px;color:#0A0A0C;cursor:pointer">Apply</button>
+      </div>
+    </div>
     <div style="font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px">1 · Pick a day ${pbSelDay!=null?`<span style="color:var(--amber)">(${DEMO_DAYS[pbSelDay]} selected — tap a workout below to add it, or drag one)</span>`:''}</div>
     ${DEMO_DAYS.map((day,i)=>{
       const iso=addDaysISO(pbWeekStart,i);
@@ -3106,6 +3130,41 @@ function renderPB(){
         <div style="flex:1"><div style="font-size:13px;font-weight:500;color:var(--text)">${w.name}</div><div style="font-size:11px;color:var(--muted)">${w.plan} · ${w.ex.length} exercises · ~${w.dur||'?'} min</div></div>
         <span style="color:var(--amber);font-weight:700;font-size:14px">${pbSelDay!=null?'+ Assign':'⠿ Drag'}</span>
       </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts in this plan yet.</p>`}`;
+}
+
+function repeatPBWeeks(){
+  const n=parseInt(gi('pbRepeatWeeks')?.value,10);
+  if(!n||n<2){toast('Enter how many weeks total (2 or more)');return}
+  repeatPlanWeeks(n);
+}
+
+/* Clones everything currently assigned in the on-screen week (pbWeekStart..+6)
+   forward onto the next N-1 weeks, same days/workouts each time — e.g.
+   "4 weeks total" keeps this week and adds 3 repeats of it. Skips a target
+   day if it already has a workout with that exact name, so re-clicking
+   Apply (or bumping the number up later) is safe and won't double-book. */
+async function repeatPlanWeeks(n){
+  const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
+  const weekEnd=addDaysISO(pbWeekStart,7);
+  const base=(c._workouts||[]).filter(w=>w.scheduled_date>=pbWeekStart&&w.scheduled_date<weekEnd);
+  if(!base.length){toast('Build out this week first, then repeat it');return}
+  const toInsert=[];
+  for(let wk=1;wk<n;wk++){
+    for(const w of base){
+      const newDate=addDaysISO(w.scheduled_date,7*wk);
+      const dup=(c._workouts||[]).some(x=>x.scheduled_date===newDate&&x.name===w.name);
+      if(dup)continue;
+      toInsert.push({id:uid(),client_id:pbClientId,coach_id:PROFILE.id,scheduled_date:newDate,name:w.name,type:w.type,dur:w.dur,exercises:w.exercises,status:'pending'});
+    }
+  }
+  if(!toInsert.length){toast('Those weeks already have this plan — nothing new to add');return}
+  if(!DEMO){
+    const{error}=await sb.from('assigned_workouts').insert(toInsert);
+    if(error){toast('Could not repeat plan: '+error.message);return}
+  }
+  c._workouts=(c._workouts||[]).concat(toInsert);
+  toast(`Repeated across ${n} weeks — ${toInsert.length} session(s) added ✓`);
+  renderPB();
 }
 
 async function genPBPlan(){
