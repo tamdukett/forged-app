@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CRUCIBLE — Where Athletes Are Made</title>
+<title>FORGED — Training System</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,9 +11,9 @@
 <style>
 :root{
   /* light, card-based palette (Trainerize-inspired) — brand amber kept as
-     the single accent color throughout so it still reads as CRUCIBLE */
+     the single accent color throughout so it still reads as FORGED */
   --bg:#F5F5F8;--surface:#FFFFFF;--s2:#F2F2F6;--border:#E7E7EF;--border2:#D6D6E2;
-  --amber:#E8460A;--ag:rgba(245,158,11,0.10);--ad:#92400E;
+  --amber:#F59E0B;--ag:rgba(245,158,11,0.10);--ad:#92400E;
   --green:#16A34A;--gd:#DCFCE7;--red:#DC2626;--rd:#FEE2E2;
   --blue:#2563EB;--purple:#7C3AED;--text:#16161D;--muted:#6B6B7D;
   --shadow:0 1px 2px rgba(20,20,30,.04),0 1px 8px rgba(20,20,30,.05);
@@ -22,20 +22,21 @@
      pulled into variables so dark mode can redefine them instead of ending
      up with a pale island (or, worse, near-white text on a pale bg) */
   --hoverTint:#FFF8EA;--doneTint:#F0FDF4;--creamTint:#FFFBF2;
-  --aboxG1:#FFF3EE;--aboxG2:#FFFFFF;--aboxText:#7C4A03;
+  --aboxG1:#FFF8EA;--aboxG2:#FFFFFF;--aboxText:#7C4A03;
   --mfpbG1:#EFF6FF;--mfpbG2:#FFFFFF;--mfpbBorder:#BFDBFE;
   --warnBg:#FFF7ED;--warnText:#C2410C;
 }
 html.dark{
-  /* dark palette — same accent hues, re-tuned for a near-black surface so
-     nothing ends up light-text-on-light-tint or dark-text-on-dark-tint */
-  --bg:#0E0E13;--surface:#191922;--s2:#20202B;--border:#2C2C3A;--border2:#3D3D4E;
-  --amber:#E8460A;--ag:rgba(245,158,11,0.16);--ad:#FCD34D;
+  /* dark palette — RoxHype-style near-black surface with a bold gold/yellow
+     accent (the app's default look). Re-tuned tints so nothing ends up
+     light-text-on-light-tint or dark-text-on-dark-tint */
+  --bg:#0A0A0D;--surface:#161619;--s2:#1E1E24;--border:#2A2A31;--border2:#3A3A43;
+  --amber:#FFC72C;--ag:rgba(255,199,44,0.16);--ad:#FFD966;
   --green:#22C55E;--gd:rgba(34,197,94,0.16);--red:#F87171;--rd:rgba(248,113,113,0.16);
-  --blue:#60A5FA;--purple:#A78BFA;--text:#F2F2F6;--muted:#9494A8;
-  --shadow:0 1px 2px rgba(0,0,0,.35),0 1px 10px rgba(0,0,0,.3);
-  --hoverTint:rgba(245,158,11,0.12);--doneTint:rgba(34,197,94,0.12);--creamTint:rgba(245,158,11,0.08);
-  --aboxG1:rgba(245,158,11,0.14);--aboxG2:rgba(245,158,11,0.03);--aboxText:#FCD34D;
+  --blue:#60A5FA;--purple:#A78BFA;--text:#F5F5F7;--muted:#9C9CA8;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 1px 10px rgba(0,0,0,.35);
+  --hoverTint:rgba(255,199,44,0.12);--doneTint:rgba(34,197,94,0.12);--creamTint:rgba(255,199,44,0.08);
+  --aboxG1:rgba(255,199,44,0.14);--aboxG2:rgba(255,199,44,0.03);--aboxText:#FFD966;
   --mfpbG1:rgba(96,165,250,0.14);--mfpbG2:rgba(96,165,250,0.03);--mfpbBorder:rgba(96,165,250,0.35);
   --warnBg:rgba(234,88,12,0.16);--warnText:#FB923C;
 }
@@ -47,6 +48,34 @@ button,input,select,textarea{font-family:inherit}
 .thumb{width:48px;height:48px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:20px;background-size:cover;background-position:center;color:#fff}
 .thumb.sm{width:36px;height:36px;font-size:16px;border-radius:8px}
 .thumb.lg{width:64px;height:64px;font-size:26px;border-radius:12px}
+
+/* HERO — bold uppercase headline block used at the top of key screens
+   (RoxHype-style: big Barlow Condensed headline + amber highlight word) */
+.hero{padding:6px 2px 18px}
+.hero-kicker{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--amber);text-transform:uppercase;margin-bottom:6px}
+.hero-title{font-family:var(--df);font-weight:900;font-size:30px;line-height:1.05;letter-spacing:.5px;text-transform:uppercase;color:var(--text)}
+.hero-title em{color:var(--amber);font-style:normal}
+.hero-sub{font-size:13px;color:var(--muted);margin-top:8px;max-width:520px;line-height:1.6}
+
+/* CHIP / BADGE — small pill tags for difficulty, duration, equipment (used
+   on plan-library cards) */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:4px 9px;border-radius:100px;border:1px solid var(--border2);color:var(--muted);background:var(--s2)}
+.chip-beginner{color:#16A34A;border-color:rgba(34,197,94,.35);background:var(--gd)}
+.chip-intermediate{color:var(--ad);border-color:rgba(255,199,44,.35);background:var(--ag)}
+.chip-advanced{color:#F87171;border-color:rgba(248,113,113,.35);background:var(--rd)}
+.chip-elite{color:#A78BFA;border-color:rgba(167,139,250,.35);background:rgba(167,139,250,.14)}
+
+/* PLAN CARD — RoxHype "popular pre-built workouts" style card */
+.plan-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;cursor:pointer}
+.plan-card:hover{border-color:var(--amber);transform:translateY(-2px)}
+.plan-card .pc-icon{font-size:26px}
+.plan-card .pc-title{font-family:var(--df);font-weight:700;font-size:17px;letter-spacing:.5px;color:var(--text)}
+.plan-card .pc-desc{font-size:12px;color:var(--muted);line-height:1.5;flex:1}
+.plan-card .pc-chips{display:flex;flex-wrap:wrap;gap:6px}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.cat-pill-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:16px}
+.cat-pill{flex-shrink:0;padding:8px 16px;border-radius:100px;border:1px solid var(--border2);background:var(--s2);color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;cursor:pointer;transition:all .15s}
+.cat-pill.on{background:var(--amber);border-color:var(--amber);color:#0A0A0C}
 
 /* SCREENS */
 .screen{display:none;position:fixed;inset:0;z-index:200;background:var(--bg);overflow-y:auto;padding:24px;align-items:center;justify-content:center}
@@ -60,8 +89,8 @@ button,input,select,textarea{font-family:inherit}
 .field label{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--muted);text-transform:uppercase}
 .fi{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:11px 14px;color:var(--text);font-size:14px;outline:none;transition:border .15s;width:100%}
 .fi:focus{border-color:var(--amber)}.fi::placeholder{color:var(--muted)}
-.btn-p{width:100%;background:var(--amber);color:#fff;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
-.btn-p:hover{background:#FF7040;transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-p{width:100%;background:var(--amber);color:#0A0A0C;border:none;border-radius:9px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;margin-top:4px}
+.btn-p:hover{background:#FCD34D;transform:translateY(-1px)}.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .btn-g{background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all .15s}
 .btn-g:hover{border-color:var(--border2)}
 .aerr{background:rgba(220,38,38,.08);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:10px 14px;font-size:13px;color:#B91C1C;margin-bottom:12px;display:none}
@@ -76,10 +105,14 @@ button,input,select,textarea{font-family:inherit}
 .pw-eye:hover{opacity:1}
 .authtabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:22px}
 .authtab{flex:1;padding:8px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
-.authtab.active{background:var(--amber);color:#fff}
+.authtab.active{background:var(--amber);color:#0A0A0C}
 .seg{display:flex;gap:6px}
 .segb{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--s2);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted);text-align:center;transition:all .15s}
 .segb.on{border-color:var(--amber);background:var(--ag);color:var(--amber)}
+.chkgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.chkopt{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:500;color:var(--text);text-transform:none;letter-spacing:0;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:9px 10px;cursor:pointer;transition:all .15s}
+.chkopt:has(input:checked){border-color:var(--amber);background:var(--ag);color:var(--ad)}
+.chkopt input{accent-color:var(--amber);width:15px;height:15px;flex-shrink:0}
 
 /* APP */
 #app{display:none;min-height:100vh;flex-direction:column}
@@ -89,7 +122,7 @@ button,input,select,textarea{font-family:inherit}
 .topbar-right{display:flex;align-items:center;gap:10px}
 .vpill{display:flex;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;gap:2px}
 .vb{padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted)}
-.vb.active{background:var(--amber);color:#fff}
+.vb.active{background:var(--amber);color:#0A0A0C}
 .av{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;color:#0A0A0C;cursor:pointer;flex-shrink:0}
 .cdot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
 
@@ -108,7 +141,7 @@ button,input,select,textarea{font-family:inherit}
 /* TABS */
 .tabs{display:flex;gap:3px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:3px;margin-bottom:18px;flex-wrap:wrap}
 .tab{flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted);white-space:nowrap}
-.tab.active{background:var(--amber);color:#fff}
+.tab.active{background:var(--amber);color:#0A0A0C}
 
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
@@ -339,7 +372,7 @@ html,body{overflow-x:hidden;max-width:100vw}
 <!-- SETUP -->
 <div class="screen" id="setupScreen">
   <div class="auth-card" style="max-width:460px">
-    <div class="logo">CRUCIBLE</div>
+    <div class="logo">FORGED</div>
     <div class="logo-sub">Training System — Setup</div>
     <p class="auth-note">Connect your Supabase database to get started. Only needed once per device.</p>
     <div class="field"><label>Supabase Project URL</label><input class="fi" id="cfgUrl" type="url" placeholder="https://xxxx.supabase.co"></div>
@@ -357,82 +390,106 @@ html,body{overflow-x:hidden;max-width:100vw}
 <!-- AUTH -->
 <div class="screen" id="authScreen">
   <div class="auth-card" id="loginCard">
-    <div class="logo">CRUCIBLE</div>
+    <div class="logo">FORGED</div>
     <div class="logo-sub">Training System</div>
     <div class="authtabs">
       <button class="authtab active" id="atLogin" onclick="showAuthTab('login')">Sign In</button>
       <button class="authtab" id="atSignup" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
-    <div class="auth-heading">Welcome back</div>
-    <p class="auth-note">Sign in with your email and password.</p>
-    <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-    <div class="field"><label>Password</label>
-      <div style="position:relative"><input class="fi" id="loginPassword" type="password" placeholder="Your password" onkeydown="if(event.key==='Enter')doLogin()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('loginPassword',this)">👁️</button></div>
+    <div id="loginStep1">
+      <div class="auth-heading">Welcome back</div>
+      <p class="auth-note">Enter your email — we'll send you a 6-digit code, no password needed.</p>
+      <div class="field"><label>Email</label><input class="fi" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')sendLoginCode()"></div>
+      <div class="aerr" id="loginError"></div>
+      <button class="btn-p" onclick="sendLoginCode()" id="loginBtn">Send code →</button>
+      <div class="auth-footer">New here? Use the Sign Up tab above.</div>
     </div>
-    <div class="aerr" id="loginError"></div>
-    <button class="btn-p" onclick="doLogin()" id="loginBtn">Sign in →</button>
-    <div class="auth-footer">New here? Use the Sign Up tab above.</div>
+    <div id="loginStep2" style="display:none">
+      <div class="auth-heading">Check your email</div>
+      <p class="auth-note">Enter the 6-digit code we just sent to <strong id="loginEmailConfirm"></strong>.</p>
+      <div class="field"><label>6-digit code</label><input class="fi" id="loginOtp" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" onkeydown="if(event.key==='Enter')verifyLoginCode()"></div>
+      <div class="aerr" id="loginOtpError"></div>
+      <button class="btn-p" onclick="verifyLoginCode()" id="loginVerifyBtn">Verify & sign in →</button>
+      <div class="auth-footer"><a href="#" onclick="backToLoginEmail();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Use a different email</a></div>
+    </div>
     <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 
   <div class="auth-card" id="signupCard" style="display:none">
-    <div class="logo">CRUCIBLE</div>
+    <div class="logo">FORGED</div>
     <div class="logo-sub">Training System</div>
     <div class="authtabs">
       <button class="authtab" onclick="showAuthTab('login')">Sign In</button>
       <button class="authtab active" onclick="showAuthTab('signup')">Sign Up</button>
     </div>
-    <div class="auth-heading">Create your account</div>
-    <p class="auth-note" id="suNote">Enter your details to get started as a client.</p>
-    <div class="field"><label>Full name</label><input class="fi" id="suName" placeholder="Your name"></div>
-    <div class="field"><label>Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com"></div>
-    <div class="field"><label>Password</label>
-      <div style="position:relative"><input class="fi" id="suPassword" type="password" placeholder="At least 8 characters" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword',this)">👁️</button></div>
-    </div>
-    <div class="field"><label>Confirm password</label>
-      <div style="position:relative"><input class="fi" id="suPassword2" type="password" placeholder="Repeat your password" style="padding-right:42px" onkeydown="if(event.key==='Enter')doSignup()"><button type="button" class="pw-eye" onclick="togglePwVis('suPassword2',this)">👁️</button></div>
-    </div>
-    <div id="suRoleBlock" style="display:none">
-      <div class="field"><label>I am a…</label>
-        <div class="seg">
-          <button class="segb on" id="suRoleClient" onclick="setSuRole('client')">Client</button>
-          <button class="segb" id="suRoleCoach" onclick="setSuRole('coach')">Coach</button>
+    <div id="suStep1">
+      <div class="auth-heading">Create your account</div>
+      <p class="auth-note" id="suNote">Enter your details to get started as a client.</p>
+      <div class="field"><label>Full name</label><input class="fi" id="suName" placeholder="Your name"></div>
+      <div class="field"><label>Email</label><input class="fi" id="suEmail" type="email" placeholder="you@example.com"></div>
+      <div id="suRoleBlock" style="display:none">
+        <div class="field"><label>I am a…</label>
+          <div class="seg">
+            <button class="segb on" id="suRoleClient" onclick="setSuRole('client')">Client</button>
+            <button class="segb" id="suRoleCoach" onclick="setSuRole('coach')">Coach</button>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="field" id="suCodeField" style="display:none"><label id="suCodeLbl">Coach setup code</label><input class="fi" id="suCode" placeholder="Given to you by the app owner" style="text-transform:uppercase"></div>
-    <div class="aerr" id="suError"></div>
-    <div class="aok" id="suOk"></div>
-    <button class="btn-p" onclick="doSignup()" id="suBtn">Create account →</button>
-    <div class="auth-footer"><a href="#" id="suCoachToggle" onclick="toggleCoachSignup(event)" style="color:var(--muted);text-decoration:underline;cursor:pointer">Are you a coach?</a></div>
-    <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
-  </div>
+      <div class="field" id="suCodeField" style="display:none"><label id="suCodeLbl">Coach setup code</label><input class="fi" id="suCode" placeholder="Given to you by the app owner" style="text-transform:uppercase"></div>
 
-  <div class="auth-card" id="setPwCard" style="display:none">
-    <div class="logo">CRUCIBLE</div><div class="logo-sub">Training System</div>
-    <div class="auth-heading">Create your password</div>
-    <p class="auth-note" id="setPwWelcome">Welcome! Choose a secure password to get started.</p>
-    <div class="field"><label>New password</label>
-      <div style="position:relative"><input class="fi" id="newPw" type="password" placeholder="Choose a strong password" oninput="checkPwRules()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('newPw',this)">👁️</button></div>
+      <div id="suOnboardBlock">
+        <div class="field">
+          <label>What are you training for? (pick any)</label>
+          <div class="chkgrid" id="suDiscBox">
+            <label class="chkopt"><input type="checkbox" value="hyrox">Hyrox-style</label>
+            <label class="chkopt"><input type="checkbox" value="metcon">Metcon / CrossFit-style</label>
+            <label class="chkopt"><input type="checkbox" value="running">Running</label>
+            <label class="chkopt"><input type="checkbox" value="general">General fitness / weight loss</label>
+            <label class="chkopt"><input type="checkbox" value="strength">Strength / powerlifting</label>
+            <label class="chkopt"><input type="checkbox" value="mobility">Mobility / recovery</label>
+          </div>
+        </div>
+        <div class="field"><label>Current fitness level</label>
+          <select class="fi" id="suLevel">
+            <option value="beginner">Beginner</option>
+            <option value="intermediate" selected>Intermediate</option>
+            <option value="advanced">Advanced</option>
+            <option value="elite">Elite / competitive</option>
+          </select>
+        </div>
+        <div class="field"><label>Equipment access</label>
+          <select class="fi" id="suEquip">
+            <option value="Full gym">Full gym</option>
+            <option value="Home — minimal equipment">Home — minimal equipment</option>
+            <option value="Bodyweight only">Bodyweight only</option>
+          </select>
+        </div>
+        <div class="field"><label>Injuries or limitations <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label>
+          <textarea class="fi" id="suInjuries" rows="2" placeholder="e.g. lower back sensitivity, left knee — anything we should train around" style="resize:vertical"></textarea>
+        </div>
+      </div>
+
+      <div class="aerr" id="suError"></div>
+      <div class="aok" id="suOk"></div>
+      <button class="btn-p" onclick="sendSignupCode()" id="suBtn">Send code →</button>
+      <div class="auth-footer"><a href="#" id="suCoachToggle" onclick="toggleCoachSignup(event)" style="color:var(--muted);text-decoration:underline;cursor:pointer">Are you a coach?</a></div>
     </div>
-    <div class="pw-rules" id="pwRules">
-      <div class="pw-rule" id="r-len">○ At least 8 characters</div>
-      <div class="pw-rule" id="r-up">○ One uppercase letter</div>
-      <div class="pw-rule" id="r-lo">○ One lowercase letter</div>
-      <div class="pw-rule" id="r-num">○ One number</div>
+    <div id="suStep2" style="display:none">
+      <div class="auth-heading">Check your email</div>
+      <p class="auth-note">Enter the 6-digit code we just sent to <strong id="suEmailConfirm"></strong>.</p>
+      <div class="field"><label>6-digit code</label><input class="fi" id="suOtp" inputmode="numeric" maxlength="6" placeholder="000000" style="letter-spacing:6px;text-align:center;font-size:20px" onkeydown="if(event.key==='Enter')verifySignupCode()"></div>
+      <div class="aerr" id="suOtpError"></div>
+      <button class="btn-p" onclick="verifySignupCode()" id="suVerifyBtn">Verify & create account →</button>
+      <div class="auth-footer"><a href="#" onclick="backToSignupForm();return false" style="color:var(--muted);text-decoration:underline;cursor:pointer">← Back</a></div>
     </div>
-    <div class="field"><label>Confirm password</label>
-      <div style="position:relative"><input class="fi" id="confPw" type="password" placeholder="Repeat your password" onkeydown="if(event.key==='Enter')doSetPw()" style="padding-right:42px"><button type="button" class="pw-eye" onclick="togglePwVis('confPw',this)">👁️</button></div>
-    </div>
-    <div class="aerr" id="setPwErr"></div>
-    <button class="btn-p" onclick="doSetPw()" id="setPwBtn" disabled>Set password & continue →</button>
+    <div style="margin-top:12px;text-align:center"><button class="btn-g" onclick="showSetup()" style="font-size:12px;padding:6px 12px;color:var(--muted)">⚙ Change connection</button></div>
   </div>
 </div>
 
 <!-- APP -->
 <div id="app">
   <div class="topbar">
-    <div><div class="tlogo">CRUCIBLE</div><div style="font-size:9px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-top:-2px">Where Athletes Are Made</div></div>
+    <div class="tlogo">FORGED</div>
     <div class="topbar-right">
       <div class="cdot" id="cdot"></div>
       <div class="vpill" id="vpill" style="display:none">
@@ -492,7 +549,7 @@ html,body{overflow-x:hidden;max-width:100vw}
         </div>
         <button class="btn-g" onclick="stopRest()">Skip</button>
       </div>
-      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ CRUCIBLE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
+      <div id="slAi" style="display:none" class="abox"><div class="ablbl">⚡ FORGE AI · NEXT SESSION</div><div class="abtxt" id="slAiTxt"></div></div>
     </div>
     <div class="mact">
       <button class="btn-g" onclick="closeSL()">Close</button>
@@ -520,6 +577,16 @@ html,body{overflow-x:hidden;max-width:100vw}
         <div class="field" style="margin-bottom:0;display:none" id="wbPlanWrap"><label>Plan / Category</label><input class="fi" id="wbPlanInp" oninput="WB.plan=this.value" placeholder="e.g. Foundations"></div>
         <div class="field" style="margin-bottom:0" id="wbDateWrap"><label>Date</label><input class="fi" type="date" id="wbDateInp" onchange="WB.scheduled_date=this.value"></div>
         <div class="field" style="margin-bottom:0;display:none" id="wbDurWrap"><label>Duration (min)</label><input class="fi" type="number" id="wbDurInp" placeholder="e.g. 45"></div>
+        <div class="field" style="margin-bottom:0;display:none" id="wbCatWrap"><label>Discipline</label>
+          <select class="fi" id="wbCatInp" onchange="WB.category=this.value">
+            <option value="hyrox">Hyrox</option>
+            <option value="metcon">Metcon / CrossFit</option>
+            <option value="running">Running</option>
+            <option value="strength">Strength</option>
+            <option value="general" selected>General Fitness</option>
+            <option value="mobility">Mobility</option>
+          </select>
+        </div>
       </div>
       <div id="wbList"></div>
       <div class="exsearch-wrap" style="margin-top:10px">
@@ -602,14 +669,14 @@ html,body{overflow-x:hidden;max-width:100vw}
       <div style="text-align:left;margin-top:10px" id="winBody"></div>
     </div>
     <div class="mact">
-      <button class="btn-p" onclick="closeWin()" style="flex:1">Nice! 🔥</button>
+      <button class="btn-p" onclick="closeWinAndSubmitNote()" style="flex:1">Nice! 🔥</button>
     </div>
   </div>
 </div>
 
 <script>
 /* ─── CONFIG ─── */
-const SUPABASE_URL='https://carxgrkqhrsxpidanyoz.supabase.co', SUPABASE_ANON_KEY='sb_publishable_XA4hYmoJu4n2ceEpdXuiog_fA9Qc2n-', CFG_KEY='crucible-cfg-v3';
+const SUPABASE_URL='https://carxgrkqhrsxpidanyoz.supabase.co', SUPABASE_ANON_KEY='sb_publishable_XA4hYmoJu4n2ceEpdXuiog_fA9Qc2n-', CFG_KEY='forged-cfg-v1';
 // Change this to gate who can self-register as a coach. Clients instead use a
 // per-coach invite code (auto-generated, shown in Settings once signed in).
 const COACH_SETUP_CODE='FORGE-COACH-2026';
@@ -619,15 +686,16 @@ const COACH_SETUP_CODE='FORGE-COACH-2026';
 function applyTheme(t){
   THEME=(t==='dark')?'dark':'light';
   try{document.documentElement.classList.toggle('dark',THEME==='dark')}catch{}
-  try{localStorage.setItem('crucible-theme',THEME)}catch{}
+  try{localStorage.setItem('forged-theme',THEME)}catch{}
 }
 function toggleTheme(){applyTheme(THEME==='dark'?'light':'dark');if(typeof renderMain==='function'&&(USER||DEMO))renderMain()}
 let THEME='light';
-try{applyTheme(localStorage.getItem('crucible-theme')||'light')}catch{applyTheme('light')}
+try{applyTheme(localStorage.getItem('forged-theme')||'dark')}catch{applyTheme('light')}
 
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
-let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm CRUCIBLE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
+let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
 let aiLoad=false,selDay=2,ctab='training',ttab='clients';
+let plansFilter='all'; // client-facing Plans tab category filter
 let weekOffset=0; // 0 = current week; +1/-1 page a week forward/back via navigateWeek()
 let loggedEx={},curEx=null,curSets=[],mood=null,photos=[null,null,null],ciDone=false;
 let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
@@ -752,6 +820,8 @@ function showAuthTab(which){
   gi('signupCard').style.display=which==='signup'?'block':'none';
   gi('atLogin').classList.toggle('active',which==='login');
   gi('atSignup').classList.toggle('active',which==='signup');
+  // reset any mid-OTP state so switching tabs never leaves a stale code screen
+  backToLoginEmail();backToSignupForm();
 }
 function setSuRole(role){
   suRole=role;
@@ -786,34 +856,47 @@ function applyInviteFromURL(){
     gi('suName').focus();
   }catch{}
 }
-function togglePwVis(id,btn){
-  const inp=gi(id);if(!inp)return;
-  const show=inp.type==='password';
-  inp.type=show?'text':'password';
-  btn.textContent=show?'🙈':'👁️';
-}
-
-/* ─── LOGIN ─── */
-async function doLogin(){
-  const email=gi('loginEmail').value.trim(),pw=gi('loginPassword').value;
-  if(!email||!pw){showErr('loginError','Please enter your email and password.');return}
+/* ─── LOGIN (passwordless — email OTP) ─── */
+let PENDING_LOGIN_EMAIL='';
+async function sendLoginCode(){
+  const email=gi('loginEmail').value.trim();
+  if(!email){showErr('loginError','Please enter your email.');return}
   clrErr('loginError');
-  const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Signing in…';
+  const btn=gi('loginBtn');btn.disabled=true;btn.textContent='Sending…';
   try{
-    const{data,error}=await sb.auth.signInWithPassword({email,password:pw});
-    if(error){showErr('loginError',error.message==='Invalid login credentials'?'Email or password is incorrect.':error.message);return}
+    const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:false}});
+    if(error){showErr('loginError',/signups not allowed|user not found|not found/i.test(error.message)?'No account found for that email — use Sign Up instead.':error.message);return}
+    PENDING_LOGIN_EMAIL=email;
+    gi('loginEmailConfirm').textContent=email;
+    gi('loginStep1').style.display='none';gi('loginStep2').style.display='block';
+    gi('loginOtp').focus();
+    toast('Code sent — check your email 📧');
+  }finally{btn.disabled=false;btn.textContent='Send code →'}
+}
+async function verifyLoginCode(){
+  const token=gi('loginOtp').value.trim();
+  if(!token){showErr('loginOtpError','Please enter the code from your email.');return}
+  clrErr('loginOtpError');
+  const btn=gi('loginVerifyBtn');btn.disabled=true;btn.textContent='Verifying…';
+  try{
+    const{data,error}=await sb.auth.verifyOtp({email:PENDING_LOGIN_EMAIL,token,type:'email'});
+    if(error){showErr('loginOtpError',error.message);return}
     USER=data.user;await loadProfile();
-  }finally{btn.disabled=false;btn.textContent='Sign in →'}
+  }finally{btn.disabled=false;btn.textContent='Verify & sign in →'}
+}
+function backToLoginEmail(){
+  const s1=gi('loginStep1'),s2=gi('loginStep2');if(!s1||!s2)return;
+  s1.style.display='block';s2.style.display='none';
+  gi('loginOtp').value='';clrErr('loginOtpError');PENDING_LOGIN_EMAIL='';
 }
 
-/* ─── SIGN UP ─── */
-async function doSignup(){
-  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim(),pw=gi('suPassword').value,pw2=gi('suPassword2').value;
+/* ─── SIGN UP (passwordless — email OTP + full training-profile intake) ─── */
+let PENDING_SIGNUP=null; // {name,email,role,coachId,disciplines,level,equip,injuries}
+async function sendSignupCode(){
+  const name=gi('suName').value.trim(),email=gi('suEmail').value.trim();
   const code=gi('suCode').value.trim().toUpperCase();
   clrErr('suError');gi('suOk').classList.remove('show');
-  if(!name||!email||!pw){showErr('suError','Please fill in your name, email, and password.');return}
-  if(pw.length<8){showErr('suError','Password must be at least 8 characters.');return}
-  if(pw!==pw2){showErr('suError','Passwords do not match.');return}
+  if(!name||!email){showErr('suError','Please fill in your name and email.');return}
   if(suRole==='coach'&&code!==COACH_SETUP_CODE){showErr('suError','Incorrect coach setup code.');return}
   let coachId=null;
   if(suRole==='client'){
@@ -830,24 +913,45 @@ async function doSignup(){
       }catch{}
     }
   }
-  const btn=gi('suBtn');btn.disabled=true;btn.textContent='Creating account…';
+  const disciplines=suRole==='client'?[...document.querySelectorAll('#suDiscBox input:checked')].map(i=>i.value):[];
+  const level=suRole==='client'?gi('suLevel').value:null;
+  const equip=suRole==='client'?gi('suEquip').value:null;
+  const injuries=suRole==='client'?gi('suInjuries').value.trim():'';
+  const btn=gi('suBtn');btn.disabled=true;btn.textContent='Sending…';
   try{
-    const{data,error}=await sb.auth.signUp({email,password:pw});
+    const{error}=await sb.auth.signInWithOtp({email,options:{shouldCreateUser:true,data:{full_name:name}}});
     if(error){showErr('suError',error.message);return}
+    PENDING_SIGNUP={name,email,role:suRole,coachId,disciplines,level,equip,injuries};
+    gi('suEmailConfirm').textContent=email;
+    gi('suStep1').style.display='none';gi('suStep2').style.display='block';
+    gi('suOtp').focus();
+  }finally{btn.disabled=false;btn.textContent='Send code →'}
+}
+async function verifySignupCode(){
+  if(!PENDING_SIGNUP)return;
+  const token=gi('suOtp').value.trim();
+  if(!token){showErr('suOtpError','Please enter the code from your email.');return}
+  clrErr('suOtpError');
+  const btn=gi('suVerifyBtn');btn.disabled=true;btn.textContent='Verifying…';
+  try{
+    const{data,error}=await sb.auth.verifyOtp({email:PENDING_SIGNUP.email,token,type:'email'});
+    if(error){showErr('suOtpError',error.message);return}
     const newUser=data.user;
-    if(!newUser){showErr('suError','Something went wrong creating your account.');return}
+    if(!newUser){showErr('suOtpError','Something went wrong creating your account.');return}
+    const{name,role,coachId,disciplines,level,equip,injuries}=PENDING_SIGNUP;
     const{error:pErr}=await sb.from('profiles').upsert({
-      id:newUser.id,email,full_name:name,role:suRole==='coach'?'trainer':'client',
-      must_change_password:false,coach_id:coachId,units:'metric'
+      id:newUser.id,email:PENDING_SIGNUP.email,full_name:name,role:role==='coach'?'trainer':'client',
+      coach_id:coachId,units:'metric',
+      disciplines,fitness_level:level,equipment_notes:equip,injuries:injuries||null
     },{onConflict:'id'});
-    if(pErr){showErr('suError','Account created but profile setup failed: '+pErr.message);return}
-    if(data.session){
-      USER=newUser;await loadProfile();
-    }else{
-      showOk('suOk','Account created! Check your email to confirm, then sign in.');
-      setTimeout(()=>showAuthTab('login'),1800);
-    }
-  }finally{btn.disabled=false;btn.textContent='Create account →'}
+    if(pErr){showErr('suOtpError','Account verified but profile setup failed: '+pErr.message);return}
+    USER=newUser;PENDING_SIGNUP=null;await loadProfile();
+  }finally{btn.disabled=false;btn.textContent='Verify & create account →'}
+}
+function backToSignupForm(){
+  const s1=gi('suStep1'),s2=gi('suStep2');if(!s1||!s2)return;
+  s1.style.display='block';s2.style.display='none';
+  gi('suOtp').value='';clrErr('suOtpError');PENDING_SIGNUP=null;
 }
 
 async function loadProfile(){
@@ -860,9 +964,9 @@ async function loadProfile(){
     await new Promise(r=>setTimeout(r,500));
   }
   if(error||!data){
-    console.warn('CRUCIBLE: profile not found, creating...',error);
+    console.warn('FORGED: profile not found, creating...',error);
     await sb.from('profiles').upsert({
-      id:USER.id, email:USER.email, role:'client', must_change_password:true
+      id:USER.id, email:USER.email, role:'client'
     },{onConflict:'id'});
     const res2=await sb.from('profiles').select('*').eq('id',USER.id).single();
     data=res2.data;
@@ -872,38 +976,8 @@ async function loadProfile(){
     alert('Could not load your profile. Please check Supabase RLS policies or contact support.');
     return;
   }
-  if(PROFILE.must_change_password){
-    gi('authScreen').classList.add('active');
-    gi('loginCard').style.display='none';gi('signupCard').style.display='none';
-    gi('setPwCard').style.display='block';
-    if(PROFILE.full_name)gi('setPwWelcome').textContent=`Welcome, ${PROFILE.full_name.split(' ')[0]}! Choose a secure password to get started.`;
-  } else {
-    gi('authScreen').classList.remove('active');
-    launch();
-  }
-}
-
-function checkPwRules(){
-  const pw=gi('newPw').value;
-  const rules=[{id:'r-len',ok:pw.length>=8,l:'At least 8 characters'},{id:'r-up',ok:/[A-Z]/.test(pw),l:'One uppercase letter'},{id:'r-lo',ok:/[a-z]/.test(pw),l:'One lowercase letter'},{id:'r-num',ok:/[0-9]/.test(pw),l:'One number'}];
-  const allOk=rules.every(r=>r.ok);
-  rules.forEach(r=>{const e=gi(r.id);if(!e)return;e.className='pw-rule'+(r.ok?' ok':'');e.textContent=(r.ok?'✓ ':'○ ')+r.l});
-  gi('setPwBtn').disabled=!allOk;
-}
-
-async function doSetPw(){
-  const pw=gi('newPw').value,conf=gi('confPw').value;
-  if(pw!==conf){showErr('setPwErr','Passwords do not match.');return}
-  clrErr('setPwErr');
-  const btn=gi('setPwBtn');btn.disabled=true;btn.textContent='Saving…';
-  try{
-    const{error}=await sb.auth.updateUser({password:pw});
-    if(error){showErr('setPwErr',error.message);return}
-    await sb.from('profiles').update({must_change_password:false}).eq('id',USER.id);
-    PROFILE.must_change_password=false;
-    gi('authScreen').classList.remove('active');gi('setPwCard').style.display='none';gi('loginCard').style.display='block';
-    launch();toast('Password set — welcome to CRUCIBLE! 🔥');
-  }finally{btn.disabled=false;btn.textContent='Set password & continue →'}
+  gi('authScreen').classList.remove('active');
+  launch();
 }
 
 async function doSO(){if(!DEMO)await sb.auth.signOut();USER=null;PROFILE=null;DEMO=false;gi('app').style.display='none';gi('app').classList.remove('active');gi('authScreen').classList.add('active');closePM()}
@@ -925,7 +999,7 @@ async function loadAppData(){
   }catch{EXLIB=EXLIB_DEMO.slice()}
   try{
     const{data}=await sb.from('workout_templates').select('*').order('plan');
-    TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[]})):TPL_DEMO.slice();
+    TEMPLATES=(data&&data.length)?data.map(x=>({id:x.id,name:x.name,plan:x.plan,dur:x.dur,equip:x.equip,ex:x.exercises||[],category:x.category||'general',difficulty:x.difficulty||null,icon:x.icon||null,isPrebuilt:!!x.is_prebuilt})):TPL_DEMO.slice();
   }catch{TEMPLATES=TPL_DEMO.slice()}
 
   await loadSharedAIKey();
@@ -978,9 +1052,10 @@ async function loadClientRoster(){
         status:!trainable.length?'active':comp>=70?'active':comp>=40?'warning':'danger',
         wt:0,goal:0,exp:'—',sess:trainable.length,
         equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric',
+        disciplines:c.disciplines||[],fitnessLevel:c.fitness_level||'—',
         _workouts:wks};
     });
-  }catch(e){console.warn('CRUCIBLE: could not load client roster',e);CLIENTS=[]}
+  }catch(e){console.warn('FORGED: could not load client roster',e);CLIENTS=[]}
 }
 
 function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|0;return h}
@@ -1305,7 +1380,7 @@ function renderClient(){
   // the tabs bar is the ONLY nav on mobile (sidebar hides below 800px), so it
   // must always be rendered — including Settings/Progress — or there's no way
   // back once you're on a tab like Settings that used to bypass this entirely.
-  const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'badges',l:'🎖️ Badges'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+  const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'plans',l:'📋 Plans'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'badges',l:'🎖️ Badges'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
   if(ctab==='settings'){gi('mc').innerHTML=clientTabs+settingsPanel();return}
   const start=weekStartForOffset(weekOffset);
   const days=DEMO_DAYS.map((lbl,i)=>{
@@ -1383,13 +1458,57 @@ function renderClient(){
       </div>
     </div>`;
   }
+  else if(ctab==='plans'){body=rPlans()}
   else if(ctab==='ai'){body=aiPanel();setTimeout(attachAI,0)}
   else if(ctab==='food'){body=foodPanel()}
   else if(ctab==='checkin'){body=ciPanel()}
   else if(ctab==='progress'){body=rProgress();setTimeout(renderProgressCharts,0)}
   else if(ctab==='badges'){body=rBadges()}
 
-  gi('mc').innerHTML=cal+tabs+body;
+  const heroHtml=(ctab==='training'||ctab==='today')?`<div class="hero">
+    <div class="hero-kicker">${(PROFILE?.disciplines&&PROFILE.disciplines.length)?PROFILE.disciplines.map(x=>DISC_LABELS[x]||x).join(' · '):'Training'}</div>
+    <div class="hero-title">Welcome back, <em>${(PROFILE?.full_name||'Athlete').split(' ')[0]}</em></div>
+    <div class="hero-sub">${d.dayWks.length?`You've got ${d.dayWks.length} session${d.dayWks.length>1?'s':''} lined up for ${d.day}. Let's get to work.`:`Nothing scheduled for ${d.day} — rest up, or add a session whenever you're ready.`}</div>
+  </div>`:'';
+
+  gi('mc').innerHTML=heroHtml+cal+tabs+body;
+}
+const DISC_LABELS={hyrox:'Hyrox',metcon:'Metcon / CrossFit',running:'Running',general:'General Fitness',strength:'Strength',mobility:'Mobility'};
+
+/* ═══ PLANS TAB — RoxHype-style pre-built plan library + "design your own" ═══ */
+function setPlansFilter(cat){plansFilter=cat;renderMain()}
+function rPlans(){
+  const cats=[{id:'all',l:'All'},{id:'hyrox',l:'Hyrox'},{id:'metcon',l:'Metcon/CrossFit'},{id:'running',l:'Running'},{id:'general',l:'General Fitness'},{id:'strength',l:'Strength'},{id:'mobility',l:'Mobility'}];
+  const mine=PROFILE?.disciplines||[];
+  let list=TEMPLATES.slice();
+  if(plansFilter!=='all')list=list.filter(t=>(t.category||'general')===plansFilter);
+  else if(mine.length)list.sort((a,b)=>(mine.includes(b.category)?1:0)-(mine.includes(a.category)?1:0));
+  const catIcon={hyrox:'🏃',metcon:'⚡',running:'👟',strength:'🏋️',mobility:'🧘',general:'💪'};
+  const diffChip=d=>d?`<span class="chip chip-${d}">${d}</span>`:'';
+  return`<div class="hero" style="padding-top:0">
+      <div class="hero-kicker">Plan Library</div>
+      <div class="hero-title">Choose Your <em>Training</em></div>
+      <div class="hero-sub">Pick a ready-made plan below, or design your own from scratch — either way it lands straight on today's calendar for you to review and save.</div>
+    </div>
+    <div class="card" style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+      <div>
+        <div class="ct" style="margin-bottom:2px">🎨 Design Your Own</div>
+        <div style="font-size:12px;color:var(--muted)">Build a fully custom workout from the exercise library — any discipline, any structure, your call.</div>
+      </div>
+      <button class="btn-p" style="width:auto;padding:11px 20px;margin-top:0" onclick='openWB(${JSON.stringify({name:"My Custom Workout",type:"training",scheduled_date:todayISO(),exercises:[]}).replace(/'/g,"&apos;")},"client-today")'>+ Design My Own</button>
+    </div>
+    <div class="cat-pill-row">${cats.map(c=>`<button class="cat-pill ${plansFilter===c.id?'on':''}" onclick="setPlansFilter('${c.id}')">${c.l}</button>`).join('')}</div>
+    <div class="plan-grid">${list.length?list.map(t=>`<div class="plan-card" onclick="useTemplateForMe('${t.id}')">
+        <div class="pc-icon">${t.icon||catIcon[t.category]||'💪'}</div>
+        <div class="pc-title">${t.name}</div>
+        <div class="pc-desc">${t.plan||'Custom workout'}${t.equip?' · '+t.equip:''}</div>
+        <div class="pc-chips">${diffChip(t.difficulty)}<span class="chip">${t.dur||'—'} min</span><span class="chip">${(t.ex||[]).length} exercises</span></div>
+      </div>`).join(''):`<div class="card" style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">No plans in this category yet — ask your coach to add some, or design your own above.</div>`}</div>`;
+}
+function useTemplateForMe(id){
+  const t=TEMPLATES.find(x=>x.id===id);if(!t)return;
+  openWB({id:uid(),name:t.name,type:'training',scheduled_date:todayISO(),dur:t.dur,exercises:(t.ex||[]).map(tplExToWkEx)},'client-today');
+  toast(`"${t.name}" loaded — review and hit Save to add it to your calendar`);
 }
 
 function exMetaLabel(ex){
@@ -1586,8 +1705,15 @@ function settingsPanel(){
       <div class="ct">👤 Profile</div>
       <div class="field"><label>Full name</label><input class="fi" id="stName" value="${PROFILE?.full_name||''}"></div>
       <div class="field"><label>Email</label><input class="fi" value="${PROFILE?.email||USER?.email||''}" disabled></div>
-      ${!isT?`<div class="field"><label>Injuries / limitations (helps the AI pick safe swaps)</label><textarea class="fi" id="stInj" rows="2" placeholder="e.g. left knee, avoid deep flexion">${PROFILE?.injuries||''}</textarea></div>
-      <div class="field"><label>Equipment access</label><input class="fi" id="stEquip" placeholder="e.g. home gym, dumbbells only" value="${PROFILE?.equipment_notes||''}"></div>`:''}
+      ${!isT?`<div class="field"><label>Training for (pick any)</label>
+        <div class="chkgrid" id="stDiscBox">${Object.entries(DISC_LABELS).map(([k,l])=>`<label class="chkopt"><input type="checkbox" value="${k}" ${(PROFILE?.disciplines||[]).includes(k)?'checked':''}>${l}</label>`).join('')}</div>
+      </div>
+      <div class="field"><label>Fitness level</label>
+        <select class="fi" id="stLevel">${['beginner','intermediate','advanced','elite'].map(l=>`<option value="${l}" ${PROFILE?.fitness_level===l?'selected':''}>${l[0].toUpperCase()+l.slice(1)}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Injuries / limitations (helps the AI pick safe swaps)</label><textarea class="fi" id="stInj" rows="2" placeholder="e.g. left knee, avoid deep flexion">${PROFILE?.injuries||''}</textarea></div>
+      <div class="field"><label>Equipment access</label><input class="fi" id="stEquip" placeholder="e.g. home gym, dumbbells only" value="${PROFILE?.equipment_notes||''}"></div>
+      <div class="field"><label>Benchmarks / personal bests <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label><textarea class="fi" id="stBench" rows="2" placeholder="e.g. 5K: 24:30, sled push 1RM: 140kg">${PROFILE?.benchmarks?.notes||''}</textarea></div>`:''}
       <button class="btn-p" onclick="saveProfileSettings()">Save Profile</button>
     </div>
     <div class="card">
@@ -1646,13 +1772,22 @@ async function saveProfileSettings(){
   const name=gi('stName').value.trim();
   const inj=gi('stInj')?gi('stInj').value.trim():undefined;
   const equip=gi('stEquip')?gi('stEquip').value.trim():undefined;
+  const disc=gi('stDiscBox')?[...document.querySelectorAll('#stDiscBox input:checked')].map(i=>i.value):undefined;
+  const level=gi('stLevel')?gi('stLevel').value:undefined;
+  const benchNotes=gi('stBench')?gi('stBench').value.trim():undefined;
   PROFILE.full_name=name;
   if(inj!==undefined)PROFILE.injuries=inj;
   if(equip!==undefined)PROFILE.equipment_notes=equip;
+  if(disc!==undefined)PROFILE.disciplines=disc;
+  if(level!==undefined)PROFILE.fitness_level=level;
+  if(benchNotes!==undefined)PROFILE.benchmarks={...(PROFILE.benchmarks||{}),notes:benchNotes};
   if(!DEMO){
     const patch={full_name:name};
     if(inj!==undefined)patch.injuries=inj;
     if(equip!==undefined)patch.equipment_notes=equip;
+    if(disc!==undefined)patch.disciplines=disc;
+    if(level!==undefined)patch.fitness_level=level;
+    if(benchNotes!==undefined)patch.benchmarks={...(PROFILE.benchmarks||{}),notes:benchNotes};
     await sb.from('profiles').update(patch).eq('id',USER.id);
   }
   toast('Profile saved ✓');renderSB();
@@ -1680,7 +1815,7 @@ const QP=['How do I do a Romanian Deadlift?','What muscles does a squat work?','
 
 function aiPanel(){
   return`<div class="card" style="height:560px;display:flex;flex-direction:column">
-    <div class="ct">⚡ CRUCIBLE AI — Training Assistant</div>
+    <div class="ct">⚡ FORGE AI — Training Assistant</div>
     <div class="aiq">${QP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
     <div class="aiwrap" style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
     <div class="airow">
@@ -1698,8 +1833,8 @@ function attachAI(){
 
 function renderAIM(){
   const c=gi('aim');if(!c)return;
-  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">CRUCIBLE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
-  if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">CRUCIBLE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
+  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">FORGE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
+  if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">FORGE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
   c.scrollTop=c.scrollHeight;
 }
 
@@ -1720,7 +1855,7 @@ async function sendAI(preset){
   try{
     const hist=AIMSG.map(m=>({role:m.role==='bot'?'assistant':'user',content:m.text}));
     const injCtx=PROFILE?.injuries?` The client has noted these injuries/limitations: ${PROFILE.injuries}.`:'';
-    const text=await callClaude(hist,'You are CRUCIBLE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
+    const text=await callClaude(hist,'You are FORGE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
     AIMSG.push({role:'bot',text:text||'Sorry, try again!'});
   }catch(e){AIMSG.push({role:'bot',text:e.message==='NO_KEY'?'Add your Anthropic API key in Settings to enable the assistant.':'Connection issue — please try again.'})}
   aiLoad=false;renderAIM();
@@ -1807,16 +1942,63 @@ async function subCI(){
   const btn=gi('ciSubBtn');if(btn){btn.disabled=true;btn.textContent='Submitting…'}
   const payload={
     client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
+    checkin_type:'weekly',
     weight_kg:ciStats.weight?dispToKg(+ciStats.weight):null,
     waist_cm:ciStats.waist?+ciStats.waist:null,hips_cm:ciStats.hips?+ciStats.hips:null,chest_cm:ciStats.chest?+ciStats.chest:null,
     mood,notes:ciNotes||null,photos:photos.filter(Boolean)
   };
+  let newId=null;
   if(!DEMO){
-    try{await sb.from('checkins').insert(payload)}
+    try{
+      const{data,error}=await sb.from('checkins').insert(payload).select('id').single();
+      if(error)throw error;
+      newId=data?.id||null;
+    }
     catch(e){toast('Could not submit check-in: '+e.message);if(btn){btn.disabled=false;btn.textContent='Submit Check-In'}return}
   }
+  const noteForAi=ciNotes;
   ciDone=true;photos=[null,null,null];mood=null;ciStats={weight:'',waist:'',hips:'',chest:''};ciNotes='';
   renderMain();toast('Check-in submitted! Your coach has been notified. ✓');
+  if(noteForAi)runAiCheckinAnalysis(newId,noteForAi);
+}
+
+/* Post-workout write-up — quick optional feedback captured right in the
+   "workout complete" celebration modal, in addition to the weekly check-in
+   above. Feeds the same AI injury-aware adjustment loop. */
+async function submitPostWorkoutCheckin(assignedWorkoutId,note){
+  let newId=null;
+  const payload={
+    client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
+    checkin_type:'post_workout',assigned_workout_id:assignedWorkoutId||null,notes:note
+  };
+  if(!DEMO){
+    try{
+      const{data,error}=await sb.from('checkins').insert(payload).select('id').single();
+      if(error)throw error;
+      newId=data?.id||null;
+      if(assignedWorkoutId)await sb.from('assigned_workouts').update({session_note:note}).eq('id',assignedWorkoutId);
+    }catch(e){toast('Could not save your notes: '+e.message);return}
+  }
+  toast('Noted — thanks for the update 📝');
+  runAiCheckinAnalysis(newId,note);
+}
+
+/* Sends the write-up (+ any injuries on file) to FORGE AI and asks for a
+   short, practical read. Fire-and-forget: never blocks the UI, and silently
+   no-ops if there's no API key configured yet. Stores the result back on
+   the checkins row so the coach can see it on the client's profile. */
+async function runAiCheckinAnalysis(checkinId,note){
+  if(!apiKey()||PROFILE?.ai_enabled===false)return;
+  try{
+    const injCtx=PROFILE?.injuries?` Known injuries/limitations on file: ${PROFILE.injuries}.`:' No injuries on file.';
+    const sys=`You are FORGE AI reviewing a client's check-in write-up.${injCtx} In 2-3 short sentences: flag anything concerning (pain, overtraining, injury risk), and suggest one concrete adjustment for their next sessions if needed. If nothing stands out, say so briefly and positively. Be direct, no fluff.`;
+    const summary=await callClaude([{role:'user',content:note}],sys,250);
+    if(!summary)return;
+    if(!DEMO&&checkinId){
+      try{await sb.from('checkins').update({ai_summary:summary}).eq('id',checkinId)}catch{}
+    }
+    toast('FORGE AI reviewed your notes — your coach can see the summary. 🤖');
+  }catch{/* no key configured, or a transient API hiccup — fail silently, this is a background nicety */}
 }
 
 /* ═══ SET LOGGER — track-type aware (reps+weight / distance+time / time only /
@@ -2004,7 +2186,7 @@ async function checkAllDone(){
   try{
     const ex=curEx.wk.exercises[curEx.idx];
     const summary=curSets.map(s=>ex.track==='reps_weight'?`Set ${s.id}: ${s.weight}${wUnit()} × ${s.reps}`:ex.track==='distance_time'?`Set ${s.id}: ${s.distance}${dUnit()} in ${s.time}`:`Set ${s.id}: ${s.reps||s.time||s.level}`).join(', ');
-    const text=await callClaude([{role:'user',content:`CRUCIBLE AI: client completed ${ex.n}: ${summary}. Give a 1-2 sentence progressive overload tip with specific numbers, plus one form cue. Direct, no fluff.`}],undefined,300);
+    const text=await callClaude([{role:'user',content:`FORGE AI: client completed ${ex.n}: ${summary}. Give a 1-2 sentence progressive overload tip with specific numbers, plus one form cue. Direct, no fluff.`}],undefined,300);
     gi('slAiTxt').textContent=text||'Great work — keep pushing next session!';
   }catch{gi('slAiTxt').textContent='Solid session! Try adding a little more next time.'}
 }
@@ -2074,7 +2256,7 @@ async function closeSL(done){
       const pbs=PB_BY_WK[wk.id]||[];delete PB_BY_WK[wk.id];
       const milestone=await checkMilestone();
       renderMain();
-      openWinModal(pbs,milestone);
+      openWinModal(pbs,milestone,wk.id);
       return;
     }
   }
@@ -2100,7 +2282,9 @@ async function checkMilestone(){
 
 /* Trophy celebration shown once per fully-completed workout — always shows
    something ("workout complete"), and calls out any PBs / milestones. */
-function openWinModal(pbs,milestone){
+let WIN_WK_ID=null;
+function openWinModal(pbs,milestone,workoutId){
+  WIN_WK_ID=workoutId||null;
   const parts=[];
   if(milestone)parts.push(`<div class="abox" style="margin-bottom:14px;text-align:center"><div style="font-size:36px">🎉</div><div style="font-family:var(--df);font-size:20px;font-weight:700;color:var(--amber);letter-spacing:1px;margin-top:4px">MILESTONE — ${milestone.count} WORKOUT${milestone.count===1?'':'S'} DONE</div></div>`);
   if(pbs&&pbs.length){
@@ -2108,10 +2292,17 @@ function openWinModal(pbs,milestone){
     pbs.forEach(p=>parts.push(`<div class="sr" style="border-color:rgba(245,158,11,.35)"><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${p.exercise}</div><div style="font-size:11px;color:var(--muted)">Previous best: ${fmtPBValue(p.field,p.prevValue)}</div></div><div style="font-family:var(--df);font-size:18px;font-weight:700;color:var(--amber)">${fmtPBValue(p.field,p.value)}</div></div>`));
   }
   if(!(pbs&&pbs.length)&&!milestone)parts.push(`<p style="font-size:13px;color:var(--muted);text-align:center;padding:10px 0">Solid session — everything's logged and saved. Keep it up!</p>`);
+  parts.push(`<div class="field" style="margin-top:16px"><label>How did that feel? Any pain, soreness, or notes?</label><textarea class="fi" id="winNote" rows="2" placeholder="Optional — your coach and the AI use this to adjust what's next"></textarea></div>`);
   gi('winBody').innerHTML=parts.join('');
   gi('winOv').classList.add('open');
 }
-function closeWin(){gi('winOv').classList.remove('open')}
+function closeWin(){gi('winOv').classList.remove('open');WIN_WK_ID=null}
+async function closeWinAndSubmitNote(){
+  const note=gi('winNote')?gi('winNote').value.trim():'';
+  const wkId=WIN_WK_ID;
+  closeWin();
+  if(note)await submitPostWorkoutCheckin(wkId,note);
+}
 function openSwapFromLogger(){
   if(!curEx)return;
   openSwap(curEx.wk,curEx.idx,'client');
@@ -2136,6 +2327,7 @@ function openWB(workout,origin,clientId){
   gi('wbDateInp').value=WB.scheduled_date||WB.date||todayISO();
   gi('wbPlanInp').value=WB.plan||'';
   gi('wbDurInp').value=WB.dur||'';
+  gi('wbCatInp').value=WB.category||(PROFILE?.disciplines&&PROFILE.disciplines[0])||'general';
   gi('wbSearch').value='';gi('wbSearchRes').style.display='none';
   renderWBList();
   gi('wbOv').classList.add('open');
@@ -2146,6 +2338,7 @@ function setWBMode(mode){
   gi('wbPlanWrap').style.display=t?'block':'none';
   gi('wbDateWrap').style.display=t?'none':'block';
   gi('wbDurWrap').style.display=t?'block':'none';
+  gi('wbCatWrap').style.display=t?'block':'none';
 }
 function closeWB(){gi('wbOv').classList.remove('open');WB=null}
 
@@ -2263,13 +2456,14 @@ async function saveWB(){
   if(WB_ORIGIN==='template'){
     const planName=gi('wbPlanInp').value.trim()||'Custom Plan';
     const dur=+gi('wbDurInp').value||(WB.exercises.length?Math.max(10,WB.exercises.length*6):0);
-    const tplObj={id:WB.id,name:WB.name,plan:planName,dur,
+    const category=gi('wbCatInp')?gi('wbCatInp').value:(WB.category||'general');
+    const tplObj={id:WB.id,name:WB.name,plan:planName,dur,category,
       equip:[...new Set(WB.exercises.map(e=>e.equip).filter(Boolean))].join(' · '),
       ex:WB.exercises.map(e=>({ex_id:e.ex_id,n:e.n,s:e.s||1,r:exToRStr(e),rest:e.rest||'',grp:e.grp||null}))};
     const idx=TEMPLATES.findIndex(t=>t.id===tplObj.id);
     if(idx>=0)TEMPLATES[idx]=tplObj;else TEMPLATES.push(tplObj);
     if(!DEMO){
-      const{error}=await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,created_by:USER.id,is_global:true},{onConflict:'id'});
+      const{error}=await sb.from('workout_templates').upsert({id:tplObj.id,name:tplObj.name,plan:tplObj.plan,dur:tplObj.dur,equip:tplObj.equip,exercises:tplObj.ex,category:tplObj.category,created_by:USER.id,is_global:true},{onConflict:'id'});
       if(error){toast('Save failed: '+error.message);return}
     }
     toast('Saved to catalog ✓');closeWB();renderMain();return;
@@ -2357,7 +2551,7 @@ ${candidates.map(c=>`- ${c.name} (${c.equip})`).join('\n')}`;
       || candidates.find(c=>c.name.toLowerCase().includes(cleaned.toLowerCase()));
     if(!choice)choice=candidates[Math.floor(Math.random()*candidates.length)];
     SWAP_CHOICE=choice;
-    gi('swapResult').innerHTML=`<div class="abox"><div class="ablbl">⚡ CRUCIBLE AI suggests</div><div class="abtxt"><strong>${choice.name}</strong><br><span style="color:var(--muted);font-size:12px">${choice.musc} · ${choice.equip} — still trains the same area, reason: ${reason}${note?' ('+note+')':''}.</span></div></div>`;
+    gi('swapResult').innerHTML=`<div class="abox"><div class="ablbl">⚡ FORGE AI suggests</div><div class="abtxt"><strong>${choice.name}</strong><br><span style="color:var(--muted);font-size:12px">${choice.musc} · ${choice.equip} — still trains the same area, reason: ${reason}${note?' ('+note+')':''}.</span></div></div>`;
     btn.textContent='Apply Swap ✓';btn.disabled=false;btn.onclick=applySwapChoice;
   }catch(e){
     // graceful fallback: pick the first matching candidate that also avoids the
@@ -2481,8 +2675,8 @@ function rClientDetail(c){
     </div>`}).join(''):`<p style="font-size:12px;color:var(--muted)">No workouts scheduled yet — use Edit Weekly Plan to build one.</p>`}
   </div>
   <div class="card csm">
-    <div class="ct">📝 Notes</div>
-    ${[{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
+    <div class="ct">📝 Training Profile</div>
+    ${[{l:'Training For',v:(c.disciplines&&c.disciplines.length)?c.disciplines.map(d=>DISC_LABELS[d]||d).join(', '):'Not set'},{l:'Fitness Level',v:c.fitnessLevel&&c.fitnessLevel!=='—'?c.fitnessLevel[0].toUpperCase()+c.fitnessLevel.slice(1):'—'},{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
   </div>
   ${(c._achievements&&c._achievements.length)?`<div class="card csm">
     <div class="ct">🏆 Achievements</div>
@@ -2494,9 +2688,10 @@ function rClientDetail(c){
   ${(c._checkins&&c._checkins.length)?`<div class="card csm">
     <div class="ct">📸 Recent Check-Ins</div>
     ${c._checkins.map(ci=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px"><span>${ci.submitted_at?new Date(ci.submitted_at).toLocaleDateString('en-GB'):''}</span>${ci.mood!=null?`<span style="font-size:16px">${['😩','😐','🙂','😄','🔥'][ci.mood]||''}</span>`:''}</div>
-      <div style="font-size:12px;color:var(--text)">${[ci.weight_kg?`Weight: ${kgToDisp(ci.weight_kg)}${wUnit()}`:'',ci.waist_cm?`Waist: ${ci.waist_cm}cm`:'',ci.hips_cm?`Hips: ${ci.hips_cm}cm`:'',ci.chest_cm?`Chest: ${ci.chest_cm}cm`:''].filter(Boolean).join(' · ')||'No stats logged'}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);margin-bottom:6px"><span>${ci.checkin_type==='post_workout'?'🏋️ Post-Workout':'📸 Weekly'} · ${ci.submitted_at?new Date(ci.submitted_at).toLocaleDateString('en-GB'):''}</span>${ci.mood!=null?`<span style="font-size:16px">${['😩','😐','🙂','😄','🔥'][ci.mood]||''}</span>`:''}</div>
+      <div style="font-size:12px;color:var(--text)">${[ci.weight_kg?`Weight: ${kgToDisp(ci.weight_kg)}${wUnit()}`:'',ci.waist_cm?`Waist: ${ci.waist_cm}cm`:'',ci.hips_cm?`Hips: ${ci.hips_cm}cm`:'',ci.chest_cm?`Chest: ${ci.chest_cm}cm`:''].filter(Boolean).join(' · ')||(ci.checkin_type==='post_workout'?'':'No stats logged')}</div>
       ${ci.notes?`<div style="font-size:12px;color:var(--muted);margin-top:4px;font-style:italic">"${ci.notes}"</div>`:''}
+      ${ci.ai_summary?`<div class="abox" style="margin-top:8px"><div class="ablbl">⚡ FORGE AI flagged</div><div class="abtxt">${ci.ai_summary}</div></div>`:''}
       ${(ci.photos&&ci.photos.length)?`<div style="display:flex;gap:6px;margin-top:6px">${ci.photos.map(p=>`<img src="${p}" style="width:48px;height:64px;object-fit:cover;border-radius:6px;border:1px solid var(--border)">`).join('')}</div>`:''}
     </div>`).join('')}
   </div>`:''}
@@ -2572,7 +2767,7 @@ function rUpload(){
   return`<div class="col">
     <div class="card">
       <div class="ct">📄 Upload Training Plans (PDF)</div>
-      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Upload PDF training plans. CRUCIBLE AI reads the PDF, extracts exercises/sets/reps/rest, and adds them to your catalog (and to Supabase, if connected) automatically.</p>
+      <p style="font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:16px">Upload PDF training plans. FORGE AI reads the PDF, extracts exercises/sets/reps/rest, and adds them to your catalog (and to Supabase, if connected) automatically.</p>
       <div class="uz" id="uz" onclick="gi('pdfInp').click()" ondragover="dov(event)" ondrop="drop(event)" ondragleave="this.classList.remove('drag')">
         <div style="font-size:36px;margin-bottom:10px">📄</div>
         <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px">Drop PDF files here, or click to browse</div>
@@ -2591,7 +2786,7 @@ function rUpload(){
     ${uploadedPDFs.length?`<div class="card"><div class="ct">Recently Uploaded</div>${uploadedPDFs.map(f=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:20px">📄</div><div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">${f.name}</div><div style="font-size:11px;color:var(--muted)">${f.wks} workouts extracted · ${f.date}</div></div><span class="badge bok">✓ Imported</span></div>`).join('')}</div>`:''}
     <div class="card csm">
       <div class="ct">How it works</div>
-      ${[{n:'1',t:'Upload your PDF',d:'Drag and drop any PDF — TrainHeroic, TrueCoach, custom spreadsheets, anything.'},{n:'2',t:'CRUCIBLE AI reads it',d:'Claude AI extracts every exercise, set, rep scheme, rest period, and coaching note.'},{n:'3',t:'Added to catalog instantly',d:'Extracted workouts appear in your catalog and exercise library. Edit any details before assigning.'},{n:'4',t:'Assign to clients',d:"Pick any workout from the catalog and add it to a client's weekly plan."}].map(s=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--ag);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-weight:700;font-size:12px;color:var(--amber);flex-shrink:0">${s.n}</div><div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${s.t}</div><div style="font-size:12px;color:var(--muted)">${s.d}</div></div></div>`).join('')}
+      ${[{n:'1',t:'Upload your PDF',d:'Drag and drop any PDF — TrainHeroic, TrueCoach, custom spreadsheets, anything.'},{n:'2',t:'FORGE AI reads it',d:'Claude AI extracts every exercise, set, rep scheme, rest period, and coaching note.'},{n:'3',t:'Added to catalog instantly',d:'Extracted workouts appear in your catalog and exercise library. Edit any details before assigning.'},{n:'4',t:'Assign to clients',d:"Pick any workout from the catalog and add it to a client's weekly plan."}].map(s=>`<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="width:24px;height:24px;border-radius:50%;background:var(--ag);border:1px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-weight:700;font-size:12px;color:var(--amber);flex-shrink:0">${s.n}</div><div><div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">${s.t}</div><div style="font-size:12px;color:var(--muted)">${s.d}</div></div></div>`).join('')}
     </div>
   </div>`;
 }
@@ -2603,7 +2798,7 @@ function handleFiles(e){const files=Array.from(e.target.files);if(files.length)p
 async function procPDFs(files){
   const prog=gi('uprog');prog.classList.add('show');
   for(const file of files){
-    gi('ufn').textContent=file.name;gi('ust').textContent='Reading…';gi('pf').style.width='20%';gi('udet').textContent='Sending to CRUCIBLE AI for extraction…';
+    gi('ufn').textContent=file.name;gi('ust').textContent='Reading…';gi('pf').style.width='20%';gi('udet').textContent='Sending to FORGE AI for extraction…';
     if(!apiKey()){gi('ust').textContent='No API key';gi('udet').textContent='Add your Anthropic API key in Settings to enable PDF extraction.';gi('pf').style.width='100%';uploadedPDFs.unshift({name:file.name,wks:0,date:new Date().toLocaleDateString('en-GB')});toast(`"${file.name}" uploaded — add API key for AI extraction`);await new Promise(r=>setTimeout(r,1500));renderMain();return}
     try{
       const b64=await f2b64(file);gi('pf').style.width='40%';gi('ust').textContent='Extracting…';
@@ -2650,7 +2845,7 @@ const TQP=['Write a fat loss programme for intermediate','Progressive overload e
 function rTrainerAI(){
   return`<div class="g2" style="align-items:start">
     <div class="card" style="height:560px;display:flex;flex-direction:column">
-      <div class="ct">⚡ CRUCIBLE AI — Trainer Assistant</div>
+      <div class="ct">⚡ FORGE AI — Trainer Assistant</div>
       <div class="aiq">${TQP.map(p=>`<button class="aic" onclick="sendAI('${p.replace(/'/g,"\\'")}')"> ${p}</button>`).join('')}</div>
       <div style="overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:10px;padding:8px 0" id="aim"></div>
       <div class="airow"><textarea class="ainp" id="aiinp" rows="2" placeholder="Ask about programming, exercise selection, clients..."></textarea><button class="aisend" onclick="sendAI()">Send</button></div>
@@ -2658,7 +2853,7 @@ function rTrainerAI(){
     <div class="col">
       <div class="card">
         <div class="ct">⚡ AI Workout Generator</div>
-        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">Describe client goals and CRUCIBLE AI builds a complete training plan.</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:12px">Describe client goals and FORGE AI builds a complete training plan.</p>
         <textarea class="fi" id="agGoals" rows="4" placeholder="e.g. Female, intermediate, fat loss, 3x/week, full gym, 50 min, preparing for Hyrox..." style="margin-bottom:10px;resize:vertical"></textarea>
         <button class="btn-p" onclick="genPlan()">Generate Workout Plan</button>
         <div id="agRes" style="display:none;margin-top:12px;background:var(--s2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap;max-height:280px;overflow-y:auto"></div>
@@ -2841,7 +3036,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
 (async function boot(){
   showAuthTab('login');
   if(SUPABASE_URL&&SUPABASE_ANON_KEY){
-    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'crucible-auth-v3'}});
+    sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
     applyInviteFromURL();
@@ -2849,7 +3044,7 @@ function saveCI(){toast(`Check-in schedule saved for ${SELCLIENT?.name||'client'
   }
   const cfg=readCfg();
   if(cfg){
-    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'crucible-auth-v3'}});
+    sb=window.supabase.createClient(cfg.url,cfg.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'forged-auth'}});
     const{data:{session}}=await sb.auth.getSession();
     if(session&&session.user){USER=session.user;await loadProfile();return}
     applyInviteFromURL();
