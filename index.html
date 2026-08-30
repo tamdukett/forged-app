@@ -143,6 +143,14 @@ button,input,select,textarea{font-family:inherit}
 .tab{flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-size:11px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;transition:all .15s;background:transparent;color:var(--muted);white-space:nowrap}
 .tab.active{background:var(--amber);color:#0A0A0C}
 
+/* BOTTOM NAV — client-side primary navigation (Hub/Training/Coach/Progress/
+   Profile), fixed to the bottom of the viewport like a native mobile app. */
+.bottom-nav{position:fixed;left:0;right:0;bottom:0;z-index:60;display:flex;background:var(--surface);border-top:1px solid var(--border);padding:6px 4px calc(6px + env(safe-area-inset-bottom, 0px));box-shadow:0 -6px 20px rgba(0,0,0,.18)}
+.bn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 2px;border:none;background:transparent;cursor:pointer;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.3px;border-radius:10px;transition:color .15s}
+.bn-item .bn-ic{font-size:19px;line-height:1}
+.bn-item.active{color:var(--amber)}
+body.is-client-view .content{padding-bottom:88px}
+
 /* CARDS */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:var(--shadow)}
 .csm{padding:14px}
@@ -532,6 +540,28 @@ html,body{overflow-x:hidden;max-width:100vw}
         <option value="Bodyweight only">Bodyweight only</option>
       </select>
     </div>
+    <div class="field"><label>What's your main goal or target event? <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label>
+      <input class="fi" id="obGoal" placeholder="e.g. Sub-70 min Hyrox, run a marathon, lose 5kg">
+    </div>
+    <div class="field"><label>Target event date <span style="color:var(--muted);text-transform:none;font-weight:400">(optional — powers the race countdown on your Hub)</span></label>
+      <input class="fi" type="date" id="obRaceDate">
+    </div>
+    <div class="field"><label>How many days a week can you train?</label>
+      <select class="fi" id="obDays">
+        <option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option>
+      </select>
+    </div>
+    <div class="field"><label>Dietary preference <span style="color:var(--muted);text-transform:none;font-weight:400">(optional — helps FORGE AI build your nutrition plan)</span></label>
+      <select class="fi" id="obDiet">
+        <option value="none" selected>No restrictions</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="vegan">Vegan</option>
+        <option value="pescatarian">Pescatarian</option>
+        <option value="dairy-free">Dairy-free</option>
+        <option value="gluten-free">Gluten-free</option>
+        <option value="keto">Keto / low-carb</option>
+      </select>
+    </div>
     <div class="field"><label>Injuries or limitations <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label>
       <textarea class="fi" id="obInjuries" rows="2" placeholder="e.g. lower back sensitivity, left knee — anything we should train around"></textarea>
     </div>
@@ -640,12 +670,14 @@ html,body{overflow-x:hidden;max-width:100vw}
       <button class="modal-x" onclick="cancelGuidedWorkout()">✕</button>
     </div>
     <div class="modal-bd" style="text-align:center;padding:10px 10px 30px">
+      <div id="gwRoundBadge" style="display:none;font-size:11px;font-weight:700;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);border-radius:20px;padding:4px 12px">Round 1 of 1</div>
       <div id="gwCountWrap">
         <div style="font-size:13px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Get Ready</div>
         <div id="gwCountNum" style="font-family:var(--df);font-size:64px;font-weight:800;color:var(--amber)">3</div>
       </div>
       <div id="gwTransWrap" style="display:none">
-        <div style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:4px">✅ <span id="gwDoneName"></span> logged</div>
+        <div id="gwDoneLineEx" style="font-size:13px;color:var(--green);font-weight:700;margin-bottom:4px">✅ <span id="gwDoneName"></span> logged</div>
+        <div id="gwDoneLineRound" style="display:none;font-size:13px;color:var(--green);font-weight:700;margin-bottom:4px">✅ Round <span id="gwDoneRoundNum"></span> complete!</div>
         <div style="font-family:var(--df);font-size:40px;font-weight:800;color:var(--amber);margin:14px 0 4px" id="gwRestTime">00:20</div>
         <div style="font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:16px">Resting</div>
         <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Up Next</div>
@@ -675,6 +707,7 @@ html,body{overflow-x:hidden;max-width:100vw}
         </div>
         <div class="field" style="margin-bottom:0;display:none" id="wbPlanWrap"><label>Plan / Category</label><input class="fi" id="wbPlanInp" oninput="WB.plan=this.value" placeholder="e.g. Foundations"></div>
         <div class="field" style="margin-bottom:0" id="wbDateWrap"><label>Date</label><input class="fi" type="date" id="wbDateInp" onchange="WB.scheduled_date=this.value"></div>
+        <div class="field" style="margin-bottom:0" id="wbRoundsWrap"><label>Rounds</label><input class="fi" type="number" min="1" max="20" id="wbRoundsInp" title="For circuit-style workouts: repeat the whole exercise sequence this many times, e.g. 3 rounds of the same 4 movements"></div>
         <div class="field" style="margin-bottom:0;display:none" id="wbDurWrap"><label>Duration (min)</label><input class="fi" type="number" id="wbDurInp" placeholder="e.g. 45"></div>
         <div class="field" style="margin-bottom:0;display:none" id="wbCatWrap"><label>Discipline</label>
           <select class="fi" id="wbCatInp" onchange="WB.category=this.value">
@@ -769,7 +802,7 @@ html,body{overflow-x:hidden;max-width:100vw}
         <select class="fi" id="tpWeeks"><option value="4">4 weeks</option><option value="6">6 weeks</option><option value="8" selected>8 weeks</option><option value="10">10 weeks</option><option value="12">12 weeks</option><option value="16">16 weeks</option></select>
       </div>
       <div class="field"><label>Training days per week</label>
-        <select class="fi" id="tpDays"><option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="5">5 days</option></select>
+        <select class="fi" id="tpDays"><option value="2">2 days</option><option value="3" selected>3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option></select>
       </div>
       <div class="field"><label>Your level</label>
         <select class="fi" id="tpLevel"><option value="beginner">Beginner</option><option value="intermediate" selected>Intermediate</option><option value="advanced">Advanced</option><option value="elite">Elite</option></select>
@@ -802,7 +835,7 @@ html,body{overflow-x:hidden;max-width:100vw}
         <select class="fi" id="npGoal"><option value="Fat loss">Fat loss</option><option value="Maintenance" selected>Maintenance / general fitness</option><option value="Performance / race fueling">Performance / race fueling</option><option value="Muscle gain">Muscle gain</option></select>
       </div>
       <div class="field"><label>Dietary preference</label>
-        <select class="fi" id="npDiet"><option value="none">No restrictions</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="pescatarian">Pescatarian</option><option value="dairy-free">Dairy-free</option><option value="gluten-free">Gluten-free</option></select>
+        <select class="fi" id="npDiet"><option value="none">No restrictions</option><option value="vegetarian">Vegetarian</option><option value="vegan">Vegan</option><option value="pescatarian">Pescatarian</option><option value="dairy-free">Dairy-free</option><option value="gluten-free">Gluten-free</option><option value="keto">Keto / low-carb</option></select>
       </div>
       <div class="g2">
         <div class="field"><label>Current weight (optional)</label><input class="fi" id="npWeight" inputmode="decimal" placeholder="e.g. 75"></div>
@@ -858,7 +891,7 @@ try{applyTheme(localStorage.getItem('forged-theme')||'dark')}catch{applyTheme('l
 
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
 let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
-let aiLoad=false,selDay=2,ctab='training',ttab='clients';
+let aiLoad=false,selDay=2,ctab='hub',ttab='clients';
 let plansFilter='all',styleFilter='all'; // client-facing Plans tab category + style filters
 const STYLE_LABELS={emom:'EMOM',amrap:'AMRAP',circuit:'Circuit',intervals:'Intervals',steady:'Steady-State',technique:'Technique'};
 const FOCUS_LABELS={endurance:'Endurance',strength:'Strength',power:'Power',technique:'Technique',hyrox_sim:'Race Sim'};
@@ -871,6 +904,14 @@ let ciStats={weight:'',waist:'',hips:'',chest:''},ciNotes='';
 let EX_HISTORY={},PB_BY_WK={};
 const MILESTONES=[1,10,25,50,100,250,500,700,1000];
 function isMilestone(n){return MILESTONES.includes(n)||(n>1000&&n%500===0)}
+/* Simple Level/XP system layered on top of the same all-time completed-workout
+   count the milestone ladder uses — every 10 completed workouts is a level,
+   so it stays in sync with BADGE_COUNT with no extra state to track. */
+function levelInfo(count){
+  const perLevel=10,c=count||0;
+  const level=Math.floor(c/perLevel)+1,xpCur=c%perLevel;
+  return{level,xpCur,xpNeed:perLevel};
+}
 let catExp={},uploadedPDFs=[],pbPlan=null,pbClientId=null,pbWeekStart=null;
 let EXLIB=[],TEMPLATES=[],CLIENTS=[],MY_WORKOUTS=[],MY_PLANS=[];
 let WB=null,WB_ORIGIN=null; // current workout builder state + where to return focus ('client-today'|'coach-day')
@@ -880,7 +921,7 @@ let WB=null,WB_ORIGIN=null; // current workout builder state + where to return f
    PROG_CHECKINS: raw checkins rows (for the bodyweight chart)
    PROG_HIST: assigned_workouts rows over the last ~10 weeks (for the compliance bar chart)
    PROG_ACH: recent achievements (PB timeline list) */
-let PROG_LOGS=null,PROG_CHECKINS=null,PROG_HIST=null,PROG_ACH=null,progSelectedEx=null,PROG_FOR=null;
+let PROG_LOGS=null,PROG_CHECKINS=null,PROG_HIST=null,PROG_ACH=null,progSelectedEx=null,PROG_FOR=null,PROG_TOP_LIFTS=[];
 const PROG_CHARTS={}; // Chart.js instances keyed by canvas id, so re-render can .destroy() cleanly
 /* Badges page state — lazy-loaded like Progress. BADGE_ACH holds the client's
    FULL achievement history (not the 20-row teaser Progress uses), BADGE_COUNT
@@ -1195,13 +1236,21 @@ async function saveOnboarding(){
   const disciplines=[...document.querySelectorAll('#obDiscBox input:checked')].map(i=>i.value);
   const level=gi('obLevel').value;
   const equip=gi('obEquip').value;
+  const goal=gi('obGoal')?gi('obGoal').value.trim():'';
+  const raceDate=gi('obRaceDate')?(gi('obRaceDate').value||null):null;
+  const daysPerWeek=gi('obDays')?+gi('obDays').value:null;
+  const dietPref=gi('obDiet')?gi('obDiet').value:'none';
   const injuries=gi('obInjuries').value.trim();
   const btn=gi('obBtn');btn.disabled=true;btn.textContent='Saving…';
   try{
     PROFILE.disciplines=disciplines;PROFILE.fitness_level=level;PROFILE.equipment_notes=equip;
+    PROFILE.dietary_pref=dietPref;
+    if(goal)PROFILE.primary_goal=goal;
+    if(raceDate)PROFILE.race_date=raceDate;
+    if(daysPerWeek)PROFILE.days_per_week=daysPerWeek;
     if(injuries)PROFILE.injuries=injuries;
     if(!DEMO){
-      try{await sb.from('profiles').update({disciplines,fitness_level:level,equipment_notes:equip,injuries:injuries||PROFILE.injuries||null}).eq('id',USER.id)}
+      try{await sb.from('profiles').update({disciplines,fitness_level:level,equipment_notes:equip,injuries:injuries||PROFILE.injuries||null,primary_goal:goal||PROFILE.primary_goal||null,race_date:raceDate||PROFILE.race_date||null,days_per_week:daysPerWeek||PROFILE.days_per_week||null,dietary_pref:dietPref}).eq('id',USER.id)}
       catch(e){toast('Could not save — you can also fill this in later under Settings');}
     }
     gi('onboardScreen').classList.remove('active');
@@ -1309,6 +1358,7 @@ async function loadClientRoster(){
         wt:0,goal:0,exp:'—',sess:trainable.length,
         equip:c.equipment_notes||'—',inj:c.injuries||'None',email:c.email,units:c.units||'metric',
         disciplines:c.disciplines||[],fitnessLevel:c.fitness_level||'—',
+        primaryGoal:c.primary_goal||'',raceDate:c.race_date||'',daysPerWeek:c.days_per_week||null,dietPref:c.dietary_pref||'none',
         _workouts:wks};
     });
   }catch(e){console.warn('FORGED: could not load client roster',e);CLIENTS=[]}
@@ -1386,7 +1436,9 @@ async function loadProgressData(forClientId){
     PROG_CHECKINS=(data||[]).filter(r=>r.weight_kg!=null);
   }catch{PROG_CHECKINS=[]}
   try{
-    const since=addDaysISO(todayISO(),-70);
+    // 17 weeks (~119 days) so the consistency heatmap has enough history to
+    // show, not just the 8-10 weeks the volume chart actually displays
+    const since=addDaysISO(todayISO(),-119);
     const{data}=await sb.from('assigned_workouts').select('scheduled_date,status,type').eq('client_id',cid).gte('scheduled_date',since).order('scheduled_date');
     PROG_HIST=(data||[]).filter(r=>r.type!=='rest'&&r.type!=='checkin');
   }catch{PROG_HIST=[]}
@@ -1418,7 +1470,7 @@ function seedDemoProgress(){
     PROG_CHECKINS.push({weight_kg:PROFILE?.units==='imperial'?bw*0.4536:bw,submitted_at:new Date(now-w*7*86400000).toISOString()});
   }
   PROG_HIST=[];
-  for(let w=8;w>=0;w--){
+  for(let w=16;w>=0;w--){
     const total=3+Math.floor(Math.random()*3);
     const done=Math.max(1,total-Math.floor(Math.random()*2));
     for(let i=0;i<total;i++)PROG_HIST.push({scheduled_date:new Date(now-w*7*86400000+i*36e5).toISOString().slice(0,10),status:i<done?'done':'pending',type:'training'});
@@ -1618,7 +1670,34 @@ function renderSB(){
 function setTab(id){if(VIEW==='trainer')ttab=id;else ctab=id;renderSB();renderMain()}
 
 /* ─── MAIN ─── */
-function renderMain(){VIEW==='client'?renderClient():renderTrainer()}
+function renderMain(){
+  document.body.classList.toggle('is-client-view',VIEW==='client');
+  VIEW==='client'?renderClient():renderTrainer();
+}
+
+/* ─── CLIENT BOTTOM NAV — 5 primary destinations; several of the original
+   tabs are grouped together as a small sub-nav switcher within that
+   destination (see subTabRow()) rather than each getting a bottom-nav slot
+   of their own. TAB_GROUP maps every ctab id to which bottom-nav icon
+   should show active, even when the ctab is a "grouped" sub-view. ─── */
+const BOTTOM_NAV=[
+  {id:'hub',ic:'🏠',l:'Hub',go:'hub'},
+  {id:'training',ic:'🏋️',l:'Training',go:'training'},
+  {id:'coach',ic:'🤖',l:'Coach',go:'ai'},
+  {id:'progress',ic:'📈',l:'Progress',go:'progress'},
+  {id:'profile',ic:'👤',l:'Profile',go:'settings'},
+];
+const TAB_GROUP={hub:'hub',training:'training',today:'training',plans:'training',ai:'coach',food:'coach',progress:'progress',badges:'progress',settings:'profile',checkin:'profile'};
+function renderBottomNav(){
+  const active=TAB_GROUP[ctab]||'hub';
+  return `<div class="bottom-nav">${BOTTOM_NAV.map(n=>`<button class="bn-item ${active===n.id?'active':''}" onclick="setTab('${n.go}')"><span class="bn-ic">${n.ic}</span>${n.l}</button>`).join('')}</div>`;
+}
+/* small pill-row switcher shown at the top of a grouped destination's body,
+   e.g. Training -> "This Week" vs "Plan Library" — reuses the existing
+   .cat-pill styling from the Plans tab so it matches visually. */
+function subTabRow(items){
+  return `<div class="cat-pill-row" style="margin-bottom:14px">${items.map(t=>`<button class="cat-pill ${ctab===t.id?'on':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
+}
 
 /* ═══ CLIENT ═══ */
 function weekOfLabel(offset){const s=weekStartForOffset(offset);const d=new Date(s+'T00:00:00');return `Week of ${d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'})}`}
@@ -1633,11 +1712,16 @@ async function navigateWeek(delta){
 }
 
 function renderClient(){
-  // the tabs bar is the ONLY nav on mobile (sidebar hides below 800px), so it
-  // must always be rendered — including Settings/Progress — or there's no way
-  // back once you're on a tab like Settings that used to bypass this entirely.
-  const clientTabs=`<div class="tabs">${[{id:'training',l:'🏋️ Today'},{id:'plans',l:'📋 Plans'},{id:'ai',l:'⚡ AI'},{id:'food',l:'🥗 Nutrition'},{id:'checkin',l:'📸 Check-In'},{id:'progress',l:'📈 Progress'},{id:'badges',l:'🎖️ Badges'},{id:'settings',l:'⚙️ Settings'}].map(t=>`<button class="tab ${ctab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</div>`;
-  if(ctab==='settings'){gi('mc').innerHTML=clientTabs+settingsPanel();return}
+  // the bottom nav is the ONLY nav on mobile (sidebar hides below 800px), so
+  // it must always be rendered — including Settings/Progress — or there's no
+  // way back once you're on a screen that used to bypass this entirely.
+  const bottomNav=renderBottomNav();
+  if(ctab==='hub'){gi('mc').innerHTML=rHub()+bottomNav;return}
+  if(ctab==='settings'||ctab==='checkin'){
+    const sub=subTabRow([{id:'settings',l:'⚙️ Settings'},{id:'checkin',l:'📸 Check-In'}]);
+    const body2=ctab==='settings'?settingsPanel():ciPanel();
+    gi('mc').innerHTML=sub+body2+bottomNav;return;
+  }
   const start=weekStartForOffset(weekOffset);
   const days=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(start,i);
@@ -1681,7 +1765,14 @@ function renderClient(){
     </div>
   </div>`;
 
-  const tabs=clientTabs;
+  // grouped destinations (Training<->Plan Library, Coach<->Nutrition,
+  // Progress<->Badges) get a small pill-row switcher at the top of the body;
+  // Settings/Check-In (the third grouped pair) are handled by their own
+  // early-return above since they don't share the day-calendar header.
+  let subNav='';
+  if(ctab==='training'||ctab==='today'||ctab==='plans')subNav=subTabRow([{id:'training',l:'📅 This Week'},{id:'plans',l:'📋 Plan Library'}]);
+  else if(ctab==='ai'||ctab==='food')subNav=subTabRow([{id:'ai',l:'🤖 AI Chat'},{id:'food',l:'🥗 Nutrition'}]);
+  else if(ctab==='progress'||ctab==='badges')subNav=subTabRow([{id:'progress',l:'📈 Progress'},{id:'badges',l:'🎖️ Badges'}]);
 
   let body='';
   if(ctab==='training'||ctab==='today'){
@@ -1727,9 +1818,88 @@ function renderClient(){
     <div class="hero-title">Welcome back, <em>${(PROFILE?.full_name||'Athlete').split(' ')[0]}</em></div>
     <div class="hero-sub">${d.dayWks.length?`You've got ${d.dayWks.length} session${d.dayWks.length>1?'s':''} lined up for ${d.day}. Let's get to work.`:`Nothing scheduled for ${d.day} — rest up, or add a session whenever you're ready.`}</div>
   </div>`:'';
+  const calHtml=(ctab==='training'||ctab==='today')?cal:'';
 
-  gi('mc').innerHTML=heroHtml+cal+tabs+body;
+  gi('mc').innerHTML=heroHtml+subNav+calHtml+body+bottomNav;
 }
+/* ═══ HUB ═══ the client's landing dashboard: race countdown (if they have
+   a race_date), this week's progress dots, today's workout(s), a coach
+   note, and quick links into the grouped destinations. Deliberately reads
+   straight from MY_WORKOUTS/PROFILE rather than the day-strip's selDay/
+   weekOffset state, so Hub always reflects "right now" regardless of
+   whatever day/week the Training tab happens to be paged to. */
+function rHub(){
+  const today=todayISO();
+  const todayWks=(MY_WORKOUTS||[]).filter(w=>w.scheduled_date===today&&w.type!=='rest'&&w.type!=='checkin');
+  const weekStart=weekStartISO(new Date());
+  const weekDays=DEMO_DAYS.map((lbl,i)=>{
+    const iso=addDaysISO(weekStart,i);
+    const dayWks=(MY_WORKOUTS||[]).filter(w=>w.scheduled_date===iso&&w.type!=='rest'&&w.type!=='checkin');
+    return{lbl,iso,has:dayWks.length>0,done:dayWks.length>0&&dayWks.every(w=>w.status==='done'),isToday:iso===today};
+  });
+  const weekDoneCount=weekDays.filter(d=>d.done).length;
+  const weekTotalCount=weekDays.filter(d=>d.has).length;
+  const raceDate=PROFILE?.race_date;
+  const daysToRace=raceDate?Math.max(0,Math.ceil((new Date(raceDate+'T00:00:00')-new Date(today+'T00:00:00'))/86400000)):null;
+  const firstName=(PROFILE?.full_name||'Athlete').split(' ')[0];
+
+  // Level/XP chip — reuses BADGE_COUNT (lazy-loaded exactly like Progress/Badges;
+  // triggers a background fetch once, then re-renders via loadBadgesData()'s own
+  // renderMain() call, so the Hub just shows a quiet "—" until it lands).
+  if(BADGE_COUNT===null){if(DEMO)seedDemoBadges();else loadBadgesData()}
+  const lvl=levelInfo(BADGE_COUNT);
+  const lvlPct=BADGE_COUNT===null?0:Math.round((lvl.xpCur/lvl.xpNeed)*100);
+  const levelHtml=`<div class="card csm" style="margin-bottom:16px;cursor:pointer" onclick="setTab('badges')">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#FB923C);display:flex;align-items:center;justify-content:center;font-family:var(--df);font-size:16px;font-weight:800;color:#0A0A0C;flex-shrink:0">${BADGE_COUNT===null?'…':lvl.level}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px"><span style="font-weight:700;color:var(--text)">Level ${BADGE_COUNT===null?'—':lvl.level}</span><span style="color:var(--muted)">${BADGE_COUNT===null?'':`${lvl.xpCur}/${lvl.xpNeed} to next`}</span></div>
+        <div style="height:6px;border-radius:3px;background:var(--s2);overflow:hidden"><div style="height:100%;width:${lvlPct}%;background:linear-gradient(90deg,#F59E0B,#FB923C);border-radius:3px"></div></div>
+      </div>
+    </div>
+  </div>`;
+
+  const countdownHtml=raceDate?`<div class="card" style="text-align:center;padding:26px 20px;margin-bottom:16px">
+      <div style="width:110px;height:110px;border-radius:50%;border:4px solid var(--amber);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 12px">
+        <div style="font-family:var(--df);font-size:32px;font-weight:800;color:var(--amber)">${daysToRace}</div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px">days</div>
+      </div>
+      <div style="font-weight:700;color:var(--text)">${daysToRace===0?"It's race day — go get it 🔥":'Until race day'}</div>
+      ${PROFILE?.primary_goal?`<div style="font-size:12px;color:var(--muted);margin-top:4px">${PROFILE.primary_goal}</div>`:''}
+    </div>`:'';
+
+  return `<div class="hero">
+    <div class="hero-kicker">${(PROFILE?.disciplines&&PROFILE.disciplines.length)?PROFILE.disciplines.map(x=>DISC_LABELS[x]||x).join(' · '):'Training'}</div>
+    <div class="hero-title">Welcome back, <em>${firstName}</em></div>
+    <div class="hero-sub">${todayWks.length?`You've got ${todayWks.length} session${todayWks.length>1?'s':''} today. Let's get to work.`:'Nothing scheduled today — rest up, or add a session whenever you like.'}</div>
+  </div>
+  ${levelHtml}
+  ${countdownHtml}
+  <div class="card csm" style="margin-bottom:16px">
+    <div class="ctr"><div class="ct" style="margin-bottom:0">This Week</div><div style="font-size:12px;color:var(--muted)">${weekDoneCount}/${weekTotalCount||0} workouts</div></div>
+    <div style="display:flex;justify-content:space-between;gap:6px;margin-top:10px">
+      ${weekDays.map(d=>`<div style="text-align:center;flex:1">
+        <div style="width:34px;height:34px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:14px;${d.done?'background:var(--amber);color:#0A0A0C':d.has?'border:2px solid var(--amber);color:var(--amber)':'background:var(--s2);color:var(--muted)'}">${d.done?'✓':d.has?'●':'—'}</div>
+        <div style="font-size:10px;color:${d.isToday?'var(--amber)':'var(--muted)'};font-weight:${d.isToday?'700':'500'}">${d.lbl[0]}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="ct" style="margin-bottom:10px">Today's Workout${todayWks.length>1?'s':''}</div>
+  ${todayWks.length?todayWks.map(wk=>{
+    const exList=wk.exercises||[];
+    return `<div class="card csm" style="cursor:pointer;margin-bottom:10px" onclick="openWorkoutOverview('${wk.id}')">
+      <div class="ctr"><div class="ct" style="margin-bottom:0">${wk.name}${wk.status==='done'?' ✅':''}</div><span style="color:var(--amber);font-weight:700;font-size:12px">${wk.status==='done'?'View':'Start ▶️'}</span></div>
+      <div style="font-size:12px;color:var(--muted)">${exList.length} exercise${exList.length===1?'':'s'} · ~${wk.dur||'?'} min</div>
+    </div>`;
+  }).join(''):`<div class="card csm" style="text-align:center;color:var(--muted);font-size:13px;margin-bottom:10px">Rest day — enjoy it, or head to Training to add a session.</div>`}
+  <div class="card csm" style="margin-top:6px"><div class="ct">💬 Coach Note</div><div style="font-size:13px;color:var(--text);line-height:1.7;font-style:italic">"Great work this week — keep logging every set so I can track your progress and adjust the plan. Ping me in Coach chat if anything's not working for you. 💪"</div><div style="font-size:10px;color:var(--muted);margin-top:8px;letter-spacing:1px">YOUR COACH</div></div>
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+    <button class="btn-g" style="flex:1;min-width:120px" onclick="setTab('plans')">📋 Browse Plans</button>
+    <button class="btn-g" style="flex:1;min-width:120px" onclick="setTab('food')">🥗 Nutrition</button>
+    <button class="btn-g" style="flex:1;min-width:120px" onclick="setTab('checkin')">📸 Check-In</button>
+  </div>`;
+}
+
 const DISC_LABELS={hyrox:'Hyrox',metcon:'Metcon / CrossFit',running:'Running',general:'General Fitness',strength:'Strength',mobility:'Mobility'};
 
 /* ═══ PLANS TAB — RoxHype-style pre-built plan library + "design your own" ═══ */
@@ -1781,6 +1951,7 @@ function openTrainingPlanWizard(){
   if(PROFILE?.fitness_level)gi('tpLevel').value=PROFILE.fitness_level;
   if(PROFILE?.race_date)gi('tpRaceDate').value=PROFILE.race_date;
   if(PROFILE?.primary_goal)gi('tpGoal').value=PROFILE.primary_goal;
+  if(PROFILE?.days_per_week)gi('tpDays').value=PROFILE.days_per_week;
   gi('tpGoBtn').disabled=false;gi('tpGoBtn').textContent='Generate My Plan →';
   gi('tpOv').classList.add('open');
 }
@@ -1798,7 +1969,7 @@ async function generateTrainingPlan(){
     const prompt=`Build a periodized ${weeks}-week training plan for a ${level} athlete training ${daysPerWeek} days per week with ${equipLabel} equipment. Goal: "${goal||'general fitness improvement'}". ${raceDate?`Target event date: ${raceDate} — every 4th week should be a lighter "Deload" week, and the FINAL week must be "Taper" (reduced volume).`:'No fixed event date — keep it progressive, with every 4th week a lighter "Deload" week if there are 4 or more weeks.'}
 
 Return ONLY this JSON shape:
-{"weeks":[{"week":1,"phase":"Base","days":[{"day_offset":0,"name":"Lower Body Strength","type":"training","exercises":[{"n":"Back Squat","s":4,"r":"8","rest":"90s"}]}]}]}
+{"weeks":[{"week":1,"phase":"Base","days":[{"day_offset":0,"name":"Lower Body Strength","type":"training","rounds":1,"exercises":[{"n":"Back Squat","s":4,"r":"8","rest":"90s"}]}]}]}
 
 Rules:
 - Exactly ${weeks} week objects, "week" 1-indexed.
@@ -1806,6 +1977,7 @@ Rules:
 - Exactly ${daysPerWeek} day objects per week (training days only, skip rest days entirely).
 - "day_offset": 0=Monday..6=Sunday, spread sensibly with rest between sessions.
 - "type": "training" or "cardio".
+- "rounds": most days are 1 (straight sets). For a circuit/AMRAP-style day, set "rounds" to how many times to repeat the whole exercise list (e.g. 3), list each movement ONCE with "s":1, and let "rounds" carry the repetition instead of stacking sets.
 - 3-6 exercises per day, realistic sets/reps or distances for the stated equipment and level. "r" is a short rep/distance/time string like "8", "400m", "30s".
 - No text outside the JSON object.`;
     const text=await callClaude([{role:'user',content:prompt}],sys,4000);
@@ -1821,7 +1993,7 @@ Rules:
           id:uid(),client_id:USER.id,coach_id:PROFILE?.coach_id||PROFILE?.id||null,
           scheduled_date:addDaysISO(weekStart,d.day_offset??0),
           name:d.name||'Training',type:d.type==='cardio'?'cardio':'training',
-          dur:null,exercises:(d.exercises||[]).map(tplExToWkEx),status:'pending',
+          dur:null,rounds:Math.max(1,+d.rounds||1),exercises:(d.exercises||[]).map(tplExToWkEx),status:'pending',
           phase_label:`${w.phase||'Training'} — Week ${w.week||wi+1}`
         });
       });
@@ -1874,6 +2046,24 @@ function weeklyBuckets(hist){
   });
   return Object.keys(map).sort().map(wk=>({wk,...map[wk]}));
 }
+/* current streak = trailing consecutive weeks (ending at the most recent
+   week with any history) that had at least one completed session; best =
+   longest such run anywhere in the loaded history. A week with no rows at
+   all (nothing scheduled) doesn't break the streak — only a week where
+   something was scheduled and nothing got done does. */
+function calcStreaks(buckets){
+  let best=0,run=0;
+  buckets.forEach(b=>{
+    if(b.total===0||b.done>0){if(b.done>0)run++;best=Math.max(best,run)}
+    else run=0;
+  });
+  let current=0;
+  for(let i=buckets.length-1;i>=0;i--){
+    if(buckets[i].done>0)current++;
+    else if(buckets[i].total>0)break;
+  }
+  return{current,best};
+}
 function rProgress(forClientId){
   const wantFor=forClientId||'self';
   if(PROG_LOGS===null||PROG_FOR!==wantFor){
@@ -1896,13 +2086,41 @@ function rProgress(forClientId){
   const bwSeries=PROG_CHECKINS||[];
   const bwDelta=bwSeries.length>1?(bwSeries[bwSeries.length-1].weight_kg-bwSeries[0].weight_kg):null;
   const stats=[
-    {l:'Sessions (10wk)',v:`${doneCount}/${totalCount}`},
+    {l:'Sessions (17wk)',v:`${doneCount}/${totalCount}`},
     {l:'Compliance',v:totalCount?Math.round(doneCount/totalCount*100)+'%':'—'},
     {l:'PBs earned',v:String(pbCount)},
     {l:'Weight change',v:bwDelta==null?'—':`${bwDelta>0?'+':''}${Math.round(kgToDisp(Math.abs(bwDelta))*10)/10*(bwDelta<0?-1:1)}${wUnit()}`},
   ];
+  const buckets=weeklyBuckets(PROG_HIST||[]);
+  const streaks=calcStreaks(buckets);
+  // day-level lookup for the consistency heatmap — same PROG_HIST rows,
+  // just keyed by exact date instead of week-start
+  const dayMap={};
+  (PROG_HIST||[]).forEach(w=>{const cur=dayMap[w.scheduled_date]||{done:0,total:0};cur.total++;if(w.status==='done')cur.done++;dayMap[w.scheduled_date]=cur});
+  const heatWeeks=17,todayD=todayISO();
+  const heatStart=addDaysISO(weekStartISO(new Date()),-(heatWeeks-1)*7);
+  const heatCells=[];
+  for(let w=0;w<heatWeeks;w++){
+    for(let d=0;d<7;d++){
+      const iso=addDaysISO(heatStart,w*7+d);
+      const cell=dayMap[iso];
+      heatCells.push({iso,state:!cell?'none':cell.done>0?'done':(iso<=todayD?'missed':'none')});
+    }
+  }
+  const heatColor={done:'#F59E0B',missed:'rgba(239,68,68,.35)',none:'var(--s2)'};
+
   return `<div class="card"><div class="ct">📈 Your Progress</div>
     <div class="g4">${stats.map(s=>`<div class="smi"><div class="sv" style="font-size:20px">${s.v}</div><div class="sl">${s.l}</div></div>`).join('')}</div>
+  </div>
+  <div class="card csm">
+    <div class="ctr"><div class="ct" style="margin-bottom:0">🔥 Streak &amp; Consistency</div><div style="font-size:12px;color:var(--muted)">last ${heatWeeks} weeks</div></div>
+    <div class="g2" style="margin-top:6px">
+      <div class="smi"><div class="sv" style="font-size:22px">${streaks.current}<span class="su"> wk</span></div><div class="sl">Current Streak</div></div>
+      <div class="smi"><div class="sv" style="font-size:22px">${streaks.best}<span class="su"> wk</span></div><div class="sl">Best Streak</div></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(17,1fr);gap:3px;margin-top:14px;overflow-x:auto">
+      ${heatCells.map(c=>`<div title="${c.iso}" style="aspect-ratio:1;border-radius:3px;background:${heatColor[c.state]}"></div>`).join('')}
+    </div>
   </div>
   <div class="g2" style="align-items:start">
     <div class="col">
@@ -1916,6 +2134,7 @@ function rProgress(forClientId){
         </div>
         ${exNames.length?`<div style="height:220px;margin-top:8px"><canvas id="progExChart"></canvas></div>`:`<p style="font-size:12px;color:var(--muted)">Log a few sets with weight to see strength progress here.</p>`}
       </div>
+      ${rTopLifts(exNames)}
     </div>
     <div class="col">
       <div class="card csm">
@@ -1929,6 +2148,32 @@ function rProgress(forClientId){
           <div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:600;color:var(--text)">${a.label}</div><div style="font-size:10px;color:var(--muted)">${a.created_at?new Date(a.created_at).toLocaleDateString('en-GB'):''}</div></div>
         </div>`).join(''):`<p style="font-size:12px;color:var(--muted)">Complete a workout to start earning PBs and milestones.</p>`}
       </div>
+    </div>
+  </div>`;
+}
+/* Up to 3 always-visible mini trend lines (most-logged reps_weight lifts) so
+   the client sees their top lifts trending at a glance, complementing the
+   single-select dropdown chart above (which can show ANY logged exercise,
+   not just the top 3). All-time best + % change vs the earliest logged set. */
+function rTopLifts(exNames){
+  if(!exNames.length)return'';
+  const counts=exNames.map(n=>({n,c:(PROG_LOGS||[]).filter(l=>l.exercise_name===n).length}));
+  const top=counts.sort((a,b)=>b.c-a.c).slice(0,3).map(x=>x.n);
+  PROG_TOP_LIFTS=top; // renderProgressCharts() reads this to build the mini canvases below
+  return `<div class="card csm">
+    <div class="ct">🏋️ Top Lifts</div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      ${top.map(n=>{
+        const rows=(PROG_LOGS||[]).filter(l=>l.exercise_name===n&&l.weight_kg!=null);
+        if(!rows.length)return'';
+        const first=rows[0].weight_kg,best=Math.max(...rows.map(r=>r.weight_kg));
+        const pct=first?Math.round(((best-first)/first)*100):0;
+        const canvasId='progTop_'+n.replace(/[^a-z0-9]/gi,'_');
+        return `<div>
+          <div class="ctr" style="margin-bottom:4px"><div style="font-size:12px;font-weight:700;color:var(--text)">${n}</div><div style="display:flex;align-items:center;gap:8px"><span style="font-size:11px;color:var(--muted)">all-time ${kgToDisp(best)}${wUnit()}</span>${pct?`<span style="font-size:11px;font-weight:700;color:${pct>=0?'#22C55E':'#EF4444'}">${pct>0?'+':''}${pct}%</span>`:''}</div></div>
+          <div style="height:60px"><canvas id="${canvasId}"></canvas></div>
+        </div>`;
+      }).join('')}
     </div>
   </div>`;
 }
@@ -1968,6 +2213,21 @@ function renderProgressCharts(){
       datasets:[{label:`${progSelectedEx} (${wUnit()})`,data:rows.map(r=>Math.round(kgToDisp(r.weight_kg)*10)/10),borderColor:'#2563EB',backgroundColor:'rgba(37,99,235,.12)',fill:true,tension:.35,pointRadius:3,pointBackgroundColor:'#2563EB'}]
     },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{grid:{color:gridColor}}}}});
   }
+
+  // Top Lifts mini-charts (rTopLifts() populates PROG_TOP_LIFTS with up to 3
+  // exercise names right before this runs) — small sparkline-style trends,
+  // no axes/legend, just the shape of the progress
+  PROG_TOP_LIFTS.forEach(n=>{
+    const id='progTop_'+n.replace(/[^a-z0-9]/gi,'_');
+    if(PROG_CHARTS[id]){PROG_CHARTS[id].destroy();delete PROG_CHARTS[id]}
+    const canvas=gi(id);if(!canvas)return;
+    const rows=(PROG_LOGS||[]).filter(l=>l.exercise_name===n&&l.weight_kg!=null);
+    if(!rows.length)return;
+    PROG_CHARTS[id]=new Chart(canvas,{type:'line',data:{
+      labels:rows.map((r,i)=>i),
+      datasets:[{data:rows.map(r=>Math.round(kgToDisp(r.weight_kg)*10)/10),borderColor:'#F59E0B',backgroundColor:'rgba(245,158,11,.1)',fill:true,tension:.35,pointRadius:0,borderWidth:2}]
+    },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{enabled:false}},scales:{x:{display:false},y:{display:false}}}});
+  });
 }
 
 /* ═══ BADGES EARNED PAGE ═══ client-facing gallery: the milestone ladder
@@ -2052,6 +2312,14 @@ function settingsPanel(){
       </div>
       <div class="field"><label>Injuries / limitations (helps the AI pick safe swaps)</label><textarea class="fi" id="stInj" rows="2" placeholder="e.g. left knee, avoid deep flexion">${PROFILE?.injuries||''}</textarea></div>
       <div class="field"><label>Equipment access</label><input class="fi" id="stEquip" placeholder="e.g. home gym, dumbbells only" value="${PROFILE?.equipment_notes||''}"></div>
+      <div class="field"><label>Main goal or target event <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label><input class="fi" id="stGoal" placeholder="e.g. Sub-70 min Hyrox, run a marathon, lose 5kg" value="${PROFILE?.primary_goal||''}"></div>
+      <div class="field"><label>Target event date <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label><input class="fi" type="date" id="stRaceDate" value="${PROFILE?.race_date||''}"></div>
+      <div class="field"><label>Training days per week</label>
+        <select class="fi" id="stDays">${[2,3,4,5,6].map(n=>`<option value="${n}" ${PROFILE?.days_per_week===n?'selected':''}>${n} days</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>Dietary preference</label>
+        <select class="fi" id="stDiet">${[['none','No restrictions'],['vegetarian','Vegetarian'],['vegan','Vegan'],['pescatarian','Pescatarian'],['dairy-free','Dairy-free'],['gluten-free','Gluten-free'],['keto','Keto / low-carb']].map(([v,l])=>`<option value="${v}" ${(PROFILE?.dietary_pref||'none')===v?'selected':''}>${l}</option>`).join('')}</select>
+      </div>
       <div class="field"><label>Benchmarks / personal bests <span style="color:var(--muted);text-transform:none;font-weight:400">(optional)</span></label><textarea class="fi" id="stBench" rows="2" placeholder="e.g. 5K: 24:30, sled push 1RM: 140kg">${PROFILE?.benchmarks?.notes||''}</textarea></div>`:''}
       <button class="btn-p" onclick="saveProfileSettings()">Save Profile</button>
     </div>
@@ -2113,12 +2381,20 @@ async function saveProfileSettings(){
   const equip=gi('stEquip')?gi('stEquip').value.trim():undefined;
   const disc=gi('stDiscBox')?[...document.querySelectorAll('#stDiscBox input:checked')].map(i=>i.value):undefined;
   const level=gi('stLevel')?gi('stLevel').value:undefined;
+  const goal=gi('stGoal')?gi('stGoal').value.trim():undefined;
+  const raceDate=gi('stRaceDate')?(gi('stRaceDate').value||null):undefined;
+  const daysPerWeek=gi('stDays')?+gi('stDays').value:undefined;
+  const dietPref=gi('stDiet')?gi('stDiet').value:undefined;
   const benchNotes=gi('stBench')?gi('stBench').value.trim():undefined;
   PROFILE.full_name=name;
   if(inj!==undefined)PROFILE.injuries=inj;
   if(equip!==undefined)PROFILE.equipment_notes=equip;
   if(disc!==undefined)PROFILE.disciplines=disc;
   if(level!==undefined)PROFILE.fitness_level=level;
+  if(goal!==undefined)PROFILE.primary_goal=goal;
+  if(raceDate!==undefined)PROFILE.race_date=raceDate;
+  if(daysPerWeek!==undefined)PROFILE.days_per_week=daysPerWeek;
+  if(dietPref!==undefined)PROFILE.dietary_pref=dietPref;
   if(benchNotes!==undefined)PROFILE.benchmarks={...(PROFILE.benchmarks||{}),notes:benchNotes};
   if(!DEMO){
     const patch={full_name:name};
@@ -2126,6 +2402,10 @@ async function saveProfileSettings(){
     if(equip!==undefined)patch.equipment_notes=equip;
     if(disc!==undefined)patch.disciplines=disc;
     if(level!==undefined)patch.fitness_level=level;
+    if(goal!==undefined)patch.primary_goal=goal||null;
+    if(raceDate!==undefined)patch.race_date=raceDate;
+    if(daysPerWeek!==undefined)patch.days_per_week=daysPerWeek;
+    if(dietPref!==undefined)patch.dietary_pref=dietPref;
     if(benchNotes!==undefined)patch.benchmarks={...(PROFILE.benchmarks||{}),notes:benchNotes};
     await sb.from('profiles').update(patch).eq('id',USER.id);
   }
@@ -2170,11 +2450,91 @@ function attachAI(){
   if(inp)inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendAI()}});
 }
 
+/* Proposed-change cards — rendered under a bot message that included a
+   [[PROPOSE]]...[[/PROPOSE]] block (see sendAI()). Kept as plain data on the
+   message object (m.proposal = {..., status:'pending'|'accepted'|'rejected'})
+   so re-rendering the chat (scrolling, new messages) doesn't lose the state. */
+function proposalCardHtml(p,i){
+  if(!p)return'';
+  const isSwap=p.type==='swap';
+  const title=isSwap?'🔁 Proposed Swap':'🔧 Proposed Adjustment';
+  const body=isSwap
+    ? `<strong>${p.exercise||'?'}</strong> → <strong>${p.new_exercise||'?'}</strong>`
+    : `<strong>${p.exercise||'?'}</strong> — ${p.sets?`${p.sets} sets`:''}${p.sets&&p.reps?' × ':''}${p.reps?`${p.reps} reps`:''}`;
+  const where=[p.workout,p.date].filter(Boolean).join(' · ');
+  let actions='';
+  if(p.status==='accepted')actions=`<div style="font-size:12px;font-weight:700;color:var(--green);margin-top:8px">✓ Applied to the plan</div>`;
+  else if(p.status==='rejected')actions=`<div style="font-size:12px;color:var(--muted);margin-top:8px">Dismissed</div>`;
+  else actions=`<div style="display:flex;gap:8px;margin-top:10px"><button class="btn-p" style="width:auto;padding:8px 16px;margin-top:0;font-size:12px" onclick="acceptProposal(${i})">✅ Accept</button><button class="btn-g" style="width:auto;padding:8px 16px;margin-top:0;font-size:12px" onclick="rejectProposal(${i})">✕ Not now</button></div>`;
+  return`<div class="abox" style="margin-top:8px;text-align:left">
+    <div class="ablbl">${title}</div>
+    <div class="abtxt">${body}${where?`<div style="font-size:11px;color:var(--muted);margin-top:2px">${where}</div>`:''}${p.reason?`<div style="font-size:12px;color:var(--muted);margin-top:6px;font-style:italic">"${p.reason}"</div>`:''}</div>
+    ${actions}
+  </div>`;
+}
 function renderAIM(){
   const c=gi('aim');if(!c)return;
-  c.innerHTML=AIMSG.map(m=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">FORGE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div></div>`).join('');
+  c.innerHTML=AIMSG.map((m,i)=>`<div class="aimsg ${m.role==='bot'?'bot':'user'}">${m.role==='bot'?`<div class="aiml">FORGE AI</div>`:''}<div style="white-space:pre-wrap">${m.text}</div>${m.role==='bot'?proposalCardHtml(m.proposal,i):''}</div>`).join('');
   if(aiLoad)c.innerHTML+=`<div class="aimsg bot"><div class="aiml">FORGE AI</div><span style="color:var(--muted)">Thinking...</span></div>`;
   c.scrollTop=c.scrollHeight;
+}
+/* Pulls the client's current week into a compact text summary so FORGE AI
+   can reference real workout/exercise names when proposing a change —
+   without this it would just be guessing at what's actually on the plan. */
+function currentPlanSummaryForAI(){
+  if(!MY_WORKOUTS||!MY_WORKOUTS.length)return'The client has no workouts scheduled this week yet.';
+  return MY_WORKOUTS.filter(w=>w.type!=='rest'&&w.type!=='checkin').map(w=>
+    `${w.scheduled_date} — "${w.name}": ${(w.exercises||[]).map(e=>e.n).join(', ')||'(no exercises)'}`
+  ).join('\n');
+}
+const PROPOSAL_RE=/\[\[PROPOSE\]\]([\s\S]*?)\[\[\/PROPOSE\]\]/;
+function extractProposal(text){
+  const m=text.match(PROPOSAL_RE);
+  if(!m)return{clean:text,proposal:null};
+  const clean=text.replace(PROPOSAL_RE,'').trim();
+  try{
+    const parsed=JSON.parse(m[1].trim());
+    if(parsed&&(parsed.type==='swap'||parsed.type==='adjust')&&parsed.exercise)return{clean,proposal:{...parsed,status:'pending'}};
+  }catch{/* malformed JSON from the model — just show the chat text, no card */}
+  return{clean,proposal:null};
+}
+/* Applies an accepted proposal straight onto the live MY_WORKOUTS array (same
+   data the calendar/day view reads), then persists it exactly like a manual
+   exercise swap or edit would. Matches the target workout by date+name first,
+   falling back to "whichever upcoming workout has this exercise" so a slightly
+   imprecise date/name from the AI still resolves correctly most of the time. */
+function findAiTarget(p){
+  let wk=MY_WORKOUTS.find(w=>w.scheduled_date===p.date&&(w.name||'').toLowerCase()===(p.workout||'').toLowerCase());
+  if(!wk)wk=MY_WORKOUTS.find(w=>(w.exercises||[]).some(e=>e.n.toLowerCase()===(p.exercise||'').toLowerCase()));
+  if(!wk)return null;
+  const idx=(wk.exercises||[]).findIndex(e=>e.n.toLowerCase()===(p.exercise||'').toLowerCase());
+  if(idx<0)return null;
+  return{wk,idx};
+}
+async function acceptProposal(i){
+  const msg=AIMSG[i];const p=msg&&msg.proposal;if(!p||p.status!=='pending')return;
+  const target=findAiTarget(p);
+  if(!target){toast(`Could not find "${p.exercise}" on your plan anymore — it may have already changed.`);return}
+  const{wk,idx}=target;const ex=wk.exercises[idx];
+  if(p.type==='swap'&&p.new_exercise){
+    wk.exercises[idx]={...ex,ex_id:null,n:p.new_exercise};
+  }else if(p.type==='adjust'){
+    if(p.sets)ex.s=Math.max(1,+p.sets||ex.s);
+    if(p.reps!=null&&p.reps!==''){
+      if(ex.track==='reps_weight'||ex.track==='reps_only'||!ex.track)ex.reps=isNaN(+p.reps)?ex.reps:+p.reps;
+    }
+  }
+  if(!DEMO){
+    try{await sb.from('assigned_workouts').update({exercises:wk.exercises}).eq('id',wk.id)}catch{}
+  }
+  p.status='accepted';
+  toast('Applied to your plan ✓');
+  renderAIM();
+}
+function rejectProposal(i){
+  const msg=AIMSG[i];if(!msg||!msg.proposal)return;
+  msg.proposal.status='rejected';
+  renderAIM();
 }
 
 async function callClaude(messages,system,maxTokens=1000){
@@ -2192,10 +2552,23 @@ async function sendAI(preset){
   AIMSG.push({role:'user',text:q});aiLoad=true;renderAIM();
   if(!apiKey()){AIMSG.push({role:'bot',text:'Add your Anthropic API key in Settings to enable the assistant.'});aiLoad=false;renderAIM();return}
   try{
+    // history sent to the model should never include the raw proposal JSON
+    // block or the accept/reject card markup — just the human-readable text
     const hist=AIMSG.map(m=>({role:m.role==='bot'?'assistant':'user',content:m.text}));
     const injCtx=PROFILE?.injuries?` The client has noted these injuries/limitations: ${PROFILE.injuries}.`:'';
-    const text=await callClaude(hist,'You are FORGE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.'+injCtx,1000);
-    AIMSG.push({role:'bot',text:text||'Sorry, try again!'});
+    const sys=`You are FORGE AI, a knowledgeable personal trainer assistant. Be direct and practical. Keep answers to 2-3 short paragraphs max.${injCtx}
+
+This is the client's current week on their plan:
+${currentPlanSummaryForAI()}
+
+If — and only if — the client is asking you to change something concrete on their plan (swap an exercise that isn't working, or adjust the sets/reps for one), propose EXACTLY ONE change by appending this machine-readable block at the very end of your reply, after your normal conversational answer, referencing an exercise name and workout name/date from the plan above exactly as written:
+[[PROPOSE]]{"type":"swap","date":"YYYY-MM-DD","workout":"Workout Name","exercise":"Current Exercise Name","new_exercise":"New Exercise Name","reason":"one short sentence"}[[/PROPOSE]]
+or
+[[PROPOSE]]{"type":"adjust","date":"YYYY-MM-DD","workout":"Workout Name","exercise":"Exercise Name","sets":3,"reps":"12","reason":"one short sentence"}[[/PROPOSE]]
+Never mention this block in your visible reply — it's parsed separately and shown as its own Accept/Reject card. For general questions, technique tips, or nutrition advice with no concrete plan edit, omit the block entirely.`;
+    const text=await callClaude(hist,sys,1000);
+    const{clean,proposal}=extractProposal(text||'Sorry, try again!');
+    AIMSG.push({role:'bot',text:clean,proposal});
   }catch(e){AIMSG.push({role:'bot',text:e.message==='NO_KEY'?'Add your Anthropic API key in Settings to enable the assistant.':'Connection issue — please try again.'})}
   aiLoad=false;renderAIM();
 }
@@ -2243,6 +2616,7 @@ function openNutritionWizard(){
   const prev=NUTRITION_PLAN;
   if(prev?.goal)gi('npGoal').value=prev.goal;
   if(prev?.dietary_pref)gi('npDiet').value=prev.dietary_pref;
+  else if(PROFILE?.dietary_pref&&PROFILE.dietary_pref!=='none')gi('npDiet').value=PROFILE.dietary_pref;
   if(PROFILE?.race_date)gi('npRaceDate').value=PROFILE.race_date;
   gi('npGoBtn').disabled=false;gi('npGoBtn').textContent='Generate My Plan →';
   gi('npOv').classList.add('open');
@@ -2433,7 +2807,8 @@ function openWorkoutOverview(workoutId){
   const exList=wk.exercises||[];
   const doneCt=exList.filter(e=>e.done).length;
   gi('woName').textContent=wk.name;
-  gi('woMeta').textContent=`${exList.length} exercise${exList.length===1?'':'s'} · ~${wk.dur||'?'} min${wk.status==='done'?' · ✅ Completed':''}`;
+  const roundsN=wk.rounds||1;
+  gi('woMeta').textContent=`${exList.length} exercise${exList.length===1?'':'s'}${roundsN>1?` · 🔁 ${roundsN} rounds`:''} · ~${wk.dur||'?'} min${wk.status==='done'?' · ✅ Completed':''}`;
   gi('woCont').innerHTML=exList.length?exList.map(ex=>`<div class="exr ${ex.done?'done':''}">
       ${thumbHtml(ex.cat,ex.photo,'sm')}
       <div style="flex:1;min-width:0"><div class="exname">${ex.n}</div><div class="exmeta">${exMetaLabel(ex)}${ex.rest?` · Rest ${ex.rest}`:''}</div></div>
@@ -2456,12 +2831,22 @@ function startWorkoutFromOverview(){
    with a rest/"up next" transition in between — no need to back out to the
    day view and tap the next exercise manually. See closeSL() for the
    auto-advance hookup and openGuidedTransition() for the rest screen. */
-let GUIDED_MODE=false,gwCountdownTimer=null,gwRestTimer=null;
+let GUIDED_MODE=false,gwCountdownTimer=null,gwRestTimer=null,GW_ROUND=1,GW_TOTAL_ROUNDS=1;
+/* Round badge ("Round 2 of 3") shown above the countdown/transition screens
+   for circuit-style workouts (wk.rounds > 1) — hidden entirely for a normal
+   single-pass session so it doesn't clutter the player. */
+function updateRoundBadge(){
+  const el=gi('gwRoundBadge');
+  if(GW_TOTAL_ROUNDS>1){el.style.display='inline-block';el.textContent=`Round ${GW_ROUND} of ${GW_TOTAL_ROUNDS}`}
+  else el.style.display='none';
+}
 function startGuidedWorkout(workoutId){
   const wk=findWorkoutById(workoutId);if(!wk)return;
   const firstIdx=wk.exercises.findIndex(e=>!e.done);
   if(firstIdx<0){toast('Every exercise here is already logged ✓');return}
   GUIDED_MODE=true;
+  GW_ROUND=1;GW_TOTAL_ROUNDS=Math.max(1,wk.rounds||1);
+  updateRoundBadge();
   runGuidedCountdown(()=>openSL(workoutId,firstIdx));
 }
 function runGuidedCountdown(onDone){
@@ -2485,12 +2870,18 @@ function runGuidedCountdown(onDone){
    back to the day view, then auto-opens the Set Logger for the next
    un-logged exercise. Uses the just-finished exercise's own rest value as
    the inter-exercise rest (falls back to a 20s default) — always skippable. */
-function openGuidedTransition(wk,finishedEx,nextIdx){
+function openGuidedTransition(wk,finishedEx,nextIdx,roundJustFinished){
   const nextEx=wk.exercises[nextIdx];
-  let remain=parseRestSeconds(finishedEx.rest)||20;
-  gi('gwDoneName').textContent=finishedEx.n;
+  // circuit rounds get a longer breather between laps than the normal
+  // between-exercise rest (which uses the just-finished exercise's own rest
+  // value) — 45s is a reasonable default when the workout doesn't say otherwise
+  let remain=roundJustFinished?(parseRestSeconds(wk.roundRest)||45):(parseRestSeconds(finishedEx.rest)||20);
+  gi('gwDoneLineEx').style.display=roundJustFinished?'none':'block';
+  gi('gwDoneLineRound').style.display=roundJustFinished?'block':'none';
+  if(roundJustFinished)gi('gwDoneRoundNum').textContent=roundJustFinished;
+  else gi('gwDoneName').textContent=finishedEx.n;
   gi('gwNextName').textContent=nextEx.n;
-  gi('gwNextMeta').textContent=exMetaLabel(nextEx);
+  gi('gwNextMeta').textContent=roundJustFinished?`Round ${GW_ROUND} of ${GW_TOTAL_ROUNDS} — ${exMetaLabel(nextEx)}`:exMetaLabel(nextEx);
   gi('gwCountWrap').style.display='none';gi('gwTransWrap').style.display='block';
   const advance=()=>{
     if(gwRestTimer){clearInterval(gwRestTimer);gwRestTimer=null}
@@ -2511,9 +2902,10 @@ function openGuidedTransition(wk,finishedEx,nextIdx){
 function cancelGuidedWorkout(){
   if(gwCountdownTimer){clearInterval(gwCountdownTimer);gwCountdownTimer=null}
   if(gwRestTimer){clearInterval(gwRestTimer);gwRestTimer=null}
-  GUIDED_MODE=false;
+  GUIDED_MODE=false;GW_ROUND=1;GW_TOTAL_ROUNDS=1;
   gi('gwOv').classList.remove('open');
   gi('gwTransWrap').style.display='none';gi('gwCountWrap').style.display='block';
+  gi('gwRoundBadge').style.display='none';
 }
 
 function openSL(workoutId,exIdx){
@@ -2754,11 +3146,23 @@ async function closeSL(done){
     }
 
     const allDone=wk.exercises.every(e=>e.done);
-    if(allDone)wk.status='done';
+    // CIRCUIT/ROUNDS MODE: a workout with rounds>1 loops back through the
+    // same exercise sequence instead of finishing the moment every exercise
+    // is logged once — only the FINAL round marks the workout actually done.
+    const isMidCircuit=GUIDED_MODE&&allDone&&GW_ROUND<GW_TOTAL_ROUNDS;
+    if(allDone&&!isMidCircuit)wk.status='done';
     if(!DEMO){
       try{await sb.from('assigned_workouts').update({exercises:wk.exercises,status:wk.status}).eq('id',wk.id)}catch{}
     }
     gi('slOv').classList.remove('open');curEx=null;
+    if(isMidCircuit){
+      const justFinishedRound=GW_ROUND;
+      GW_ROUND++;
+      wk.exercises.forEach(e=>e.done=false); // reset for the next lap — logged sets from this round are already saved above
+      updateRoundBadge();
+      openGuidedTransition(wk,ex,0,justFinishedRound);
+      return;
+    }
     // GUIDED WORKOUT PLAYER: rather than dropping back to the day view after
     // each exercise, auto-advance through a short rest/"up next" transition
     // into the next un-logged exercise until the whole session is done.
@@ -2841,6 +3245,7 @@ function openWB(workout,origin,clientId){
   gi('wbNameInp').value=WB.name||'';
   gi('wbTypeInp').value=WB.type||'training';
   gi('wbDateInp').value=WB.scheduled_date||WB.date||todayISO();
+  gi('wbRoundsInp').value=WB.rounds||1;
   gi('wbPlanInp').value=WB.plan||'';
   gi('wbDurInp').value=WB.dur||'';
   gi('wbCatInp').value=WB.category||(PROFILE?.disciplines&&PROFILE.disciplines[0])||'general';
@@ -2853,6 +3258,7 @@ function setWBMode(mode){
   gi('wbTypeWrap').style.display=t?'none':'block';
   gi('wbPlanWrap').style.display=t?'block':'none';
   gi('wbDateWrap').style.display=t?'none':'block';
+  gi('wbRoundsWrap').style.display=t?'none':'block';
   gi('wbDurWrap').style.display=t?'block':'none';
   gi('wbCatWrap').style.display=t?'block':'none';
 }
@@ -2986,6 +3392,7 @@ async function saveWB(){
   }
   WB.type=gi('wbTypeInp').value;
   WB.scheduled_date=gi('wbDateInp').value;
+  WB.rounds=Math.max(1,+gi('wbRoundsInp').value||1);
   WB.dur=WB.exercises.length?Math.max(10,WB.exercises.length*6):0;
   const clientId=WB._clientId;
   if(DEMO){
@@ -2995,7 +3402,7 @@ async function saveWB(){
     if(idx>=0)list[idx]={...list[idx],...WB};else list.push({...WB,client_id:clientId,coach_id:PROFILE.id,status:'pending'});
   }else{
     const payload={id:WB.id,client_id:clientId,coach_id:VIEW==='trainer'?PROFILE.id:(PROFILE.coach_id||PROFILE.id),
-      scheduled_date:WB.scheduled_date,name:WB.name,type:WB.type,dur:WB.dur,exercises:WB.exercises,status:WB.status||'pending'};
+      scheduled_date:WB.scheduled_date,name:WB.name,type:WB.type,dur:WB.dur,rounds:WB.rounds,exercises:WB.exercises,status:WB.status||'pending'};
     const{error}=await sb.from('assigned_workouts').upsert(payload,{onConflict:'id'});
     if(error){toast('Save failed: '+error.message);return}
     if(WB_ORIGIN==='coach-day')await loadClientWorkouts(clientId);else await loadMyWorkouts();
@@ -3192,7 +3599,7 @@ function rClientDetail(c){
   </div>
   <div class="card csm">
     <div class="ct">📝 Training Profile</div>
-    ${[{l:'Training For',v:(c.disciplines&&c.disciplines.length)?c.disciplines.map(d=>DISC_LABELS[d]||d).join(', '):'Not set'},{l:'Fitness Level',v:c.fitnessLevel&&c.fitnessLevel!=='—'?c.fitnessLevel[0].toUpperCase()+c.fitnessLevel.slice(1):'—'},{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
+    ${[{l:'Training For',v:(c.disciplines&&c.disciplines.length)?c.disciplines.map(d=>DISC_LABELS[d]||d).join(', '):'Not set'},{l:'Fitness Level',v:c.fitnessLevel&&c.fitnessLevel!=='—'?c.fitnessLevel[0].toUpperCase()+c.fitnessLevel.slice(1):'—'},{l:'Goal / Target Event',v:c.primaryGoal||'Not set'},{l:'Target Date',v:c.raceDate||'—'},{l:'Days / Week',v:c.daysPerWeek?String(c.daysPerWeek):'—'},{l:'Diet Preference',v:c.dietPref&&c.dietPref!=='none'?c.dietPref[0].toUpperCase()+c.dietPref.slice(1):'No restrictions'},{l:'Injuries / Notes',v:c.inj||'None'},{l:'Equipment',v:c.equip||'—'}].map(f=>`<div style="display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);width:110px;flex-shrink:0">${f.l}</div><div style="font-size:13px;color:var(--text)">${f.v}</div></div>`).join('')}
   </div>
   ${(c._achievements&&c._achievements.length)?`<div class="card csm">
     <div class="ct">🏆 Achievements</div>
@@ -3554,10 +3961,16 @@ async function repeatPlanWeeks(n){
 async function genPBPlan(){
   const goals=gi('pbGoals')?.value?.trim();if(!goals){toast('Describe goals first');return}
   if(!apiKey()){toast('Add your Anthropic API key in Settings first');return}
+  if(!TEMPLATES.length){toast('No workout templates loaded yet — add some in the Catalog first');return}
   toast('Generating plan…');
   try{
-    const text=await callClaude([{role:'user',content:`7-day training plan. Goals: "${goals}". Return ONLY JSON array of 7 objects (Mon-Sun): day, type (training/rest/cardio/checkin), label (max 4 words). Raw JSON only.`}],undefined,600);
-    const p=JSON.parse(text.replace(/```json|```/g,'').trim());
+    const sys=`Return ONLY raw JSON, no markdown fences, no commentary before or after — just the JSON array.`;
+    const text=await callClaude([{role:'user',content:`7-day training plan. Goals: "${goals}". Return ONLY a JSON array of exactly 7 objects (Monday through Sunday, in order), each shaped {"day":"Mon","type":"training","label":"short name"} — type is one of training/rest/cardio/checkin, label is max 4 words.`}],sys,600);
+    // the model sometimes wraps the array in fences or adds a sentence either
+    // side despite the instruction — pull out just the [...] block before parsing
+    const match=text.match(/\[[\s\S]*\]/);
+    if(!match)throw new Error('AI did not return a JSON array — try rephrasing your goals');
+    const p=JSON.parse(match[0]);
     const c=CLIENTS.find(x=>x.id===pbClientId);if(!c)return;
     c._workouts=c._workouts||[];
     p.forEach((x,i)=>{
@@ -3577,7 +3990,11 @@ async function genPBPlan(){
       if(failCount){toast(`Generated, but ${failCount} day(s) failed to save — try again`);renderPB();return}
     }
     renderPB();toast('Week generated ✓ — tap any day to fine-tune it');
-  }catch{toast('Could not generate — try again')}
+  }catch(e){
+    // surface the real reason instead of a dead-end "try again" — this is
+    // the thing that made the original failure impossible to diagnose
+    toast('Could not generate: '+(e&&e.message==='NO_KEY'?'add your API key in Settings':(e&&e.message)||'unknown error — check your API key and try again'));
+  }
 }
 
 function closePB(){gi('pbOv').classList.remove('open');pbClientId=null;renderMain()}
