@@ -1252,7 +1252,12 @@ async function loadProfile(){
     gi('onboardScreen').classList.add('active');
     return;
   }
-  launch();
+  // awaited (not fire-and-forget) so boot() — and therefore the loading
+  // screen — doesn't resolve/hide until launch()'s own data fetch + render
+  // has actually finished; otherwise the app appears with an empty Hub/
+  // Training tab for a moment because the loading screen closed before
+  // MY_WORKOUTS etc had loaded.
+  await launch();
 }
 
 async function saveOnboarding(){
@@ -1394,15 +1399,25 @@ function weekStartForOffset(offset){return addDaysISO(weekStartISO(new Date()),(
    explicitly by navigateWeek() when paging forward/back so the client can
    browse other weeks' plans, not just whatever week the app happened to
    boot on. */
+/* A request "token" guards against out-of-order responses: if the client
+   opens the app (fetching this week) and then immediately pages to next
+   week, there's no guarantee those two network requests resolve in the
+   order they were sent — without this guard, whichever one happens to come
+   back LAST wins and silently overwrites MY_WORKOUTS with the wrong week's
+   data (this was the "jump to next week and it loads the week before"
+   glitch). Only the most-recently-STARTED call is allowed to write. */
+let _mwToken=0;
 async function loadMyWorkouts(weekStart){
   if(DEMO){seedDemoWorkouts();seedDemoHistory();return}
+  const myToken=++_mwToken;
   try{
     const start=weekStart||weekStartISO(new Date());
     const end=addDaysISO(start,7);
     const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',USER.id).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
+    if(myToken!==_mwToken)return; // a newer call already superseded this one — drop this stale response
     MY_WORKOUTS=data||[];
-  }catch{MY_WORKOUTS=[]}
-  await loadExerciseHistory();
+  }catch{if(myToken===_mwToken)MY_WORKOUTS=[]}
+  if(myToken===_mwToken)await loadExerciseHistory();
 }
 
 /* Pulls this client's full logging history once per session so the Set
@@ -2035,7 +2050,8 @@ Rules:
     renderMain();
     toast(`${rows.length}-session, ${weekList.length}-week plan built ✓ — check your calendar`);
   }catch(e){
-    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not generate a plan — try again${e&&e.message==='NO_KEY'?' after adding your API key in Settings':''}.</p>`;
+    console.error('FORGED: AI plan generation failed',e);
+    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">${aiErrMsg(e)}</p>`;
   }finally{btn.disabled=false;btn.textContent='Generate My Plan →'}
 }
 
@@ -2563,12 +2579,46 @@ function rejectProposal(i){
 async function callClaude(messages,system,maxTokens=1000){
   const k=apiKey();
   if(!k)throw new Error('NO_KEY');
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:maxTokens,system,messages})});
-  const d=await r.json();
-  if(d.error)throw new Error(d.error.message||'AI error');
+  let r;
+  try{
+    r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':k,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-5',max_tokens:maxTokens,system,messages})});
+  }catch(e){
+    // fetch() itself only throws on a genuine network failure (offline, DNS,
+    // or the request being blocked before it ever reached Anthropic) — an
+    // actual API error (bad key, rate limit, etc) still returns a normal
+    // response below, so this branch means "never got there at all".
+    console.error('FORGED: AI request failed to send',e);
+    throw new Error('NETWORK: could not reach the AI service — check your connection');
+  }
+  let d;
+  try{ d=await r.json() }
+  catch(e){
+    console.error('FORGED: AI response was not valid JSON',r.status,e);
+    throw new Error(`AI service returned an unreadable response (HTTP ${r.status})`);
+  }
+  if(d.error){
+    console.error('FORGED: AI API error',r.status,d.error);
+    if(r.status===401)throw new Error('INVALID_KEY');
+    throw new Error(d.error.message||`AI error (HTTP ${r.status})`);
+  }
+  if(!r.ok){
+    console.error('FORGED: AI request failed',r.status,d);
+    throw new Error(`AI service error (HTTP ${r.status})`);
+  }
   return d.content?.[0]?.text||'';
 }
 
+/* Turns a callClaude() failure into a specific, actionable message instead
+   of a generic "something went wrong" — this is what actually tells a coach
+   whether the AI is "broken" because of a missing/expired key, no network,
+   or a genuine service error, instead of leaving it a mystery. */
+function aiErrMsg(e){
+  const m=e&&e.message;
+  if(m==='NO_KEY')return'Add your Anthropic API key in Settings to enable this.';
+  if(m==='INVALID_KEY')return'Your Anthropic API key was rejected (invalid or expired) — check it in Settings.';
+  if(m&&m.startsWith('NETWORK:'))return m.replace('NETWORK: ','');
+  return m?`AI error: ${m}`:'AI error — please try again.';
+}
 async function sendAI(preset){
   const inp=gi('aiinp');const q=preset||(inp?inp.value.trim():'');
   if(!q||aiLoad)return;if(inp)inp.value='';
@@ -2592,7 +2642,7 @@ Never mention this block in your visible reply — it's parsed separately and sh
     const text=await callClaude(hist,sys,1000);
     const{clean,proposal}=extractProposal(text||'Sorry, try again!');
     AIMSG.push({role:'bot',text:clean,proposal});
-  }catch(e){AIMSG.push({role:'bot',text:e.message==='NO_KEY'?'Add your Anthropic API key in Settings to enable the assistant.':'Connection issue — please try again.'})}
+  }catch(e){console.error('FORGED: sendAI failed',e);AIMSG.push({role:'bot',text:aiErrMsg(e)})}
   aiLoad=false;renderAIM();
 }
 
@@ -2683,7 +2733,8 @@ Rules:
     renderMain();
     toast('Nutrition plan generated ✓');
   }catch(e){
-    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">Could not generate a plan — try again${e&&e.message==='NO_KEY'?' after adding your API key in Settings':''}.</p>`;
+    console.error('FORGED: AI plan generation failed',e);
+    res.innerHTML=`<p style="font-size:12px;color:#EF4444;margin-top:10px">${aiErrMsg(e)}</p>`;
   }finally{btn.disabled=false;btn.textContent='Generate My Plan →'}
 }
 
@@ -4183,16 +4234,22 @@ async function boot(){
   gi('setupScreen').classList.add('active');
 }
 /* Hides the loading screen once boot() resolves to whichever screen comes
-   next — a small fixed minimum display time keeps it from just flashing on
-   a fast connection where boot() resolves almost instantly (e.g. demo mode). */
+   next. Held up for a minimum of 5 seconds (so it never just flashes),
+   OR until boot() actually finishes loading + rendering real data — whichever
+   is longer, via Promise.all. boot() now awaits all the way through
+   loadProfile() -> launch() -> loadAppData(), so "resolved" genuinely means
+   the Hub/Training screen has real data in it, not just that the auth check
+   came back. A 15s safety timeout keeps a dead connection from trapping the
+   client on a black screen forever. */
 function hideLoadScreen(){
   const el=gi('loadScreen');if(!el)return;
   el.classList.add('hide');
   setTimeout(()=>{if(el)el.style.display='none'},400);
 }
 function runBoot(){
-  const minDelay=new Promise(r=>setTimeout(r,350));
-  Promise.all([boot(),minDelay]).catch(()=>{}).finally(hideLoadScreen);
+  const minDelay=new Promise(r=>setTimeout(r,5000));
+  const safety=new Promise(r=>setTimeout(r,15000));
+  Promise.race([Promise.all([boot(),minDelay]),safety]).catch(()=>{}).finally(hideLoadScreen);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',runBoot);else runBoot();
 </script>
