@@ -914,7 +914,13 @@ try{applyTheme(localStorage.getItem('forged-theme')||'dark')}catch{applyTheme('l
 
 let sb=null,USER=null,PROFILE=null,VIEW='client',DEMO=false;
 let SELCLIENT=null,AIMSG=[{role:'bot',text:"Hey! I'm FORGE AI — your personal training assistant. Ask me anything about exercises, nutrition, recovery, technique, or tell me an exercise isn't working for you and I'll help swap it. 💪"}];
-let aiLoad=false,selDay=2,ctab='hub',ttab='clients';
+// selDay starts null (not a hardcoded weekday index) so the very first
+// render of the Training tab recomputes it properly — renderClient() picks
+// "today" if it falls in the displayed week, else Monday. A hardcoded
+// starting index meant the first render could land on an arbitrary weekday
+// (e.g. Wednesday) instead of today, showing that day's card (often a Rest
+// Day) even though the real data for the week had loaded correctly.
+let aiLoad=false,selDay=null,ctab='hub',ttab='clients';
 let plansFilter='all',styleFilter='all'; // client-facing Plans tab category + style filters
 const STYLE_LABELS={emom:'EMOM',amrap:'AMRAP',circuit:'Circuit',intervals:'Intervals',steady:'Steady-State',technique:'Technique'};
 const FOCUS_LABELS={endurance:'Endurance',strength:'Strength',power:'Power',technique:'Technique',hyrox_sim:'Race Sim'};
@@ -1430,17 +1436,42 @@ function weekStartForOffset(offset){return addDaysISO(weekStartISO(new Date()),(
    data (this was the "jump to next week and it loads the week before"
    glitch). Only the most-recently-STARTED call is allowed to write. */
 let _mwToken=0;
+// Which week (its Monday, ISO) MY_WORKOUTS currently actually reflects —
+// null until the first successful load. Used by ensureWeekLoaded() below to
+// self-heal a render that happens to fire before/without a successful fetch
+// having landed, instead of just trusting that boot's fetch worked.
+let MY_WORKOUTS_FOR=null;
 async function loadMyWorkouts(weekStart){
-  if(DEMO){seedDemoWorkouts();seedDemoHistory();return}
+  if(DEMO){seedDemoWorkouts();seedDemoHistory();MY_WORKOUTS_FOR=weekStart||weekStartISO(new Date());return}
   const myToken=++_mwToken;
+  const start=weekStart||weekStartISO(new Date());
   try{
-    const start=weekStart||weekStartISO(new Date());
     const end=addDaysISO(start,7);
     const{data}=await sb.from('assigned_workouts').select('*').eq('client_id',USER.id).gte('scheduled_date',start).lt('scheduled_date',end).order('scheduled_date');
     if(myToken!==_mwToken)return; // a newer call already superseded this one — drop this stale response
     MY_WORKOUTS=data||[];
-  }catch{if(myToken===_mwToken)MY_WORKOUTS=[]}
+    MY_WORKOUTS_FOR=start;
+  }catch{if(myToken===_mwToken){MY_WORKOUTS=[];MY_WORKOUTS_FOR=start}}
   if(myToken===_mwToken)await loadExerciseHistory();
+}
+
+/* Belt-and-braces fix for "the plan doesn't show until I navigate away and
+   back": rather than just trusting that the one fetch fired at boot landed
+   before the Hub/Training tab first renders, both of those renders call
+   this first — if MY_WORKOUTS doesn't actually match the week being shown
+   (whatever the reason: the boot fetch was still in flight, lost a race,
+   or silently failed), it kicks off a real fetch for that exact week and
+   re-renders once it lands, instead of silently showing a false-empty week. */
+let _ensureWeekInFlight=null;
+function ensureWeekLoaded(weekStart){
+  if(DEMO||!USER)return;
+  if(MY_WORKOUTS_FOR===weekStart)return; // already showing the right week
+  if(_ensureWeekInFlight===weekStart)return; // already fetching it
+  _ensureWeekInFlight=weekStart;
+  loadMyWorkouts(weekStart).then(()=>{
+    if(_ensureWeekInFlight===weekStart)_ensureWeekInFlight=null;
+    renderMain();
+  });
 }
 
 /* Pulls this client's full logging history once per session so the Set
@@ -1784,6 +1815,7 @@ function renderClient(){
     gi('mc').innerHTML=sub+body2+bottomNav;return;
   }
   const start=weekStartForOffset(weekOffset);
+  ensureWeekLoaded(start); // self-heals + re-renders if MY_WORKOUTS isn't actually this week's data yet
   const days=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(start,i);
     const dayWks=MY_WORKOUTS.filter(w=>w.scheduled_date===iso);
@@ -1891,8 +1923,9 @@ function renderClient(){
    whatever day/week the Training tab happens to be paged to. */
 function rHub(){
   const today=todayISO();
-  const todayWks=(MY_WORKOUTS||[]).filter(w=>w.scheduled_date===today&&w.type!=='rest'&&w.type!=='checkin');
   const weekStart=weekStartISO(new Date());
+  ensureWeekLoaded(weekStart); // self-heals + re-renders if MY_WORKOUTS isn't actually this week's data yet
+  const todayWks=(MY_WORKOUTS||[]).filter(w=>w.scheduled_date===today&&w.type!=='rest'&&w.type!=='checkin');
   const weekDays=DEMO_DAYS.map((lbl,i)=>{
     const iso=addDaysISO(weekStart,i);
     const dayWks=(MY_WORKOUTS||[]).filter(w=>w.scheduled_date===iso&&w.type!=='rest'&&w.type!=='checkin');
