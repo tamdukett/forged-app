@@ -1328,9 +1328,32 @@ async function loadAppData(){
       }catch{TEMPLATES=TPL_DEMO.slice()}
     })(),
     loadSharedAIKey(),
-    PROFILE.role==='trainer'?loadClientRoster():loadMyWorkouts(),
+    // Right after a fresh sign-in, the Supabase JS client can resolve
+    // auth.getSession() a beat before the auth header is actually attached
+    // to outgoing PostgREST requests — so this very FIRST query of the
+    // session can silently come back with zero rows under RLS (no error,
+    // just auth.uid() briefly reading as null) even though the identical
+    // query a moment later works fine. That's what "nothing shows on the
+    // Home/Training tab until I navigate to another week" was: the boot
+    // fetch lost that race and came back empty, and only a LATER user
+    // action re-fetched (by then the race had resolved) and revealed the
+    // real data. loadInitialScheduleWithRetry() retries once, briefly, so
+    // the very first paint already has real data instead of a false-empty
+    // week — this already exists for the profile fetch in loadProfile()
+    // (see its own retry loop) and turned out to be needed here too.
+    loadInitialScheduleWithRetry(),
     PROFILE.role==='client'?loadNutritionPlan():Promise.resolve(),
   ]);
+}
+async function loadInitialScheduleWithRetry(){
+  const isTrainer=PROFILE.role==='trainer';
+  const load=()=>isTrainer?loadClientRoster():loadMyWorkouts();
+  const isEmpty=()=>isTrainer?!(CLIENTS&&CLIENTS.length):!(MY_WORKOUTS&&MY_WORKOUTS.length);
+  await load();
+  if(isEmpty()){
+    await new Promise(r=>setTimeout(r,700));
+    await load();
+  }
 }
 
 /* Latest AI-generated nutrition plan for this client (there can be several
